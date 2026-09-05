@@ -1,0 +1,89 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+import DashboardLayout from './layouts/DashboardLayout';
+import LoginPage from './pages/LoginPage';
+import DashboardHome from './pages/DashboardHome';
+import StudentsPage from './pages/StudentsPage';
+import TeachersPage from './pages/TeachersPage';
+import ParentsPage from './pages/ParentsPage';
+import StaffPage from './pages/StaffPage';
+import ClassesPage from './pages/ClassesPage';
+import AttendancePage from './pages/AttendancePage';
+import QrScannerPage from './pages/QrScannerPage';
+import IdCardPage from './pages/IdCardPage';
+import FeesPage from './pages/FeesPage';
+import TransportPage from './pages/TransportPage';
+import LiveTrackPage from './pages/LiveTrackPage';
+import DriverConsolePage from './pages/DriverConsolePage';
+import ExamsPage from './pages/ExamsPage';
+import HomeworkPage from './pages/HomeworkPage';
+import LeavesPage from './pages/LeavesPage';
+import NoticesPage from './pages/NoticesPage';
+import InboxPage from './pages/InboxPage';
+import SettingsPage from './pages/SettingsPage';
+import NotFoundPage from './pages/NotFoundPage';
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />}>
+          <Route index element={<DashboardHome />} />
+          <Route path="inbox" element={<InboxPage />} />
+          <Route path="notices" element={<NoticesPage />} />
+
+          <Route element={<ProtectedRoute roles={['admin', 'teacher', 'accountant']} />}>
+            <Route path="students" element={<StudentsPage />} />
+            <Route path="classes" element={<ClassesPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={['admin', 'accountant']} />}>
+            <Route path="teachers" element={<TeachersPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={['admin']} />}>
+            <Route path="parents" element={<ParentsPage />} />
+            <Route path="staff" element={<StaffPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+
+          <Route path="attendance" element={<AttendancePage />} />
+          <Route element={<ProtectedRoute roles={['admin', 'teacher']} />}>
+            <Route path="attendance/scan" element={<QrScannerPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={['admin', 'teacher', 'student', 'parent']} />}>
+            <Route path="id-card" element={<IdCardPage />} />
+            <Route path="id-card/:studentId" element={<IdCardPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={['admin', 'accountant', 'student', 'parent']} />}>
+            <Route path="fees" element={<FeesPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={['admin', 'accountant']} />}>
+            <Route path="transport" element={<TransportPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={['admin', 'accountant', 'parent']} />}>
+            <Route path="transport/live" element={<LiveTrackPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={['driver', 'admin']} />}>
+            <Route path="driver" element={<DriverConsolePage />} />
+          </Route>
+
+          <Route path="exams" element={<ExamsPage />} />
+          <Route path="homework" element={<HomeworkPage />} />
+          <Route path="leaves" element={<LeavesPage />} />
+
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
