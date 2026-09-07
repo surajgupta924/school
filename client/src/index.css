@@ -2437,3 +2437,47 @@ table.table td.strong,
     grid-template-columns: 1fr;
   }
 }
+
+/* Accountant Zone */
+.acc-top-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.acc-chip {
+  background: var(--c, #334155);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  min-width: 96px;
+  text-align: center;
+}
+
+.acc-mid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.9fr;
+  gap: 14px;
+  margin: 14px 0;
+}
+
+.acc-bottom {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .acc-mid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .acc-mid,
+  .acc-bottom {
+    grid-template-columns: 1fr;
+  }
+}

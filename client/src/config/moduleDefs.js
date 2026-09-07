@@ -219,6 +219,81 @@ const PRESETS = {
       status: 'Enabled',
     })),
   },
+  '/accountant/fees/due': {
+    entity: 'Due fee',
+    description: 'Search and manage pending / due student fees.',
+    columns: [
+      { key: 'student', label: 'Student' },
+      { key: 'className', label: 'Class' },
+      { key: 'title', label: 'Fee' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'status', label: 'Status', type: 'badge' },
+    ],
+    fields: [
+      { key: 'student', label: 'Student' },
+      { key: 'className', label: 'Class' },
+      { key: 'title', label: 'Fee title' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'status', label: 'Status', type: 'select', options: ['pending', 'overdue', 'paid'], defaultValue: 'pending' },
+    ],
+    seed: seed(5, (i) => ({
+      student: ['Aarav Patel', 'Ananya Singh', 'Rohan Mehta', 'Sara Tiwari', 'Daksh Tiwari'][i - 1],
+      className: ['10-A', '10-A', '8-B', '5-A', '3-B'][i - 1],
+      title: 'Tuition Fee — Term 1',
+      amount: `₹${[15000, 15000, 8000, 5000, 4500][i - 1].toLocaleString('en-IN')}`,
+      status: i === 3 ? 'overdue' : 'pending',
+    })),
+  },
+  '/accountant/accounts/income': {
+    entity: 'Income',
+    description: 'Record school income entries.',
+    columns: [
+      { key: 'name', label: 'Particulars' },
+      { key: 'head', label: 'Income head' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'date', label: 'Date' },
+      { key: 'status', label: 'Status', type: 'badge' },
+    ],
+    fields: [
+      { key: 'name', label: 'Particulars' },
+      { key: 'head', label: 'Income head', type: 'select', options: ['Fees', 'Donations', 'Transport', 'Other'] },
+      { key: 'amount', label: 'Amount' },
+      { key: 'date', label: 'Date', type: 'date' },
+      { key: 'status', label: 'Status', type: 'select', options: ['posted', 'pending'], defaultValue: 'posted' },
+    ],
+    seed: seed(4, (i) => ({
+      name: ['Fee collection', 'Bus fee', 'Donation', 'Lab fee'][i - 1],
+      head: ['Fees', 'Transport', 'Donations', 'Fees'][i - 1],
+      amount: `₹${[5800, 12000, 5000, 2000][i - 1].toLocaleString('en-IN')}`,
+      date: `2026-09-0${i}`,
+      status: 'posted',
+    })),
+  },
+  '/accountant/accounts/expense': {
+    entity: 'Expense',
+    description: 'Record school expense entries.',
+    columns: [
+      { key: 'name', label: 'Particulars' },
+      { key: 'head', label: 'Expense head' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'date', label: 'Date' },
+      { key: 'status', label: 'Status', type: 'badge' },
+    ],
+    fields: [
+      { key: 'name', label: 'Particulars' },
+      { key: 'head', label: 'Expense head', type: 'select', options: ['Salary', 'Utilities', 'Maintenance', 'Supplies'] },
+      { key: 'amount', label: 'Amount' },
+      { key: 'date', label: 'Date', type: 'date' },
+      { key: 'status', label: 'Status', type: 'select', options: ['posted', 'pending'], defaultValue: 'posted' },
+    ],
+    seed: seed(4, (i) => ({
+      name: ['Electricity bill', 'Staff salary advance', 'Bus repair', 'Stationery'][i - 1],
+      head: ['Utilities', 'Salary', 'Maintenance', 'Supplies'][i - 1],
+      amount: `₹${[18000, 25000, 7500, 3200][i - 1].toLocaleString('en-IN')}`,
+      date: `2026-09-0${i}`,
+      status: 'posted',
+    })),
+  },
 };
 
 function guessEntity(label) {

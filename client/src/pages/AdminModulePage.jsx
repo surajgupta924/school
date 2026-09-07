@@ -2,10 +2,15 @@ import { useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { findAdminPageMeta } from '../config/adminNav';
 import { findTeacherPageMeta } from '../config/teacherNav';
+import { findAccountantPageMeta } from '../config/accountantNav';
 import { getModuleConfig } from '../config/moduleDefs';
 
 function findPageMeta(pathname) {
-  return findAdminPageMeta(pathname) || findTeacherPageMeta(pathname) || { label: 'Module', parent: 'Workspace' };
+  return (
+    findAdminPageMeta(pathname) ||
+    findTeacherPageMeta(pathname) ||
+    findAccountantPageMeta(pathname) || { label: 'Module', parent: 'Workspace' }
+  );
 }
 
 const STORAGE_KEY = 'xyz_admin_module_data';

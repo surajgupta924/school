@@ -12,6 +12,7 @@ import { logout, selectSchoolName, selectUser } from '../features/auth/authSlice
 import { navForRole, ROLE_LABELS } from '../config/nav';
 import { ADMIN_NAV, findAdminPageMeta } from '../config/adminNav';
 import { TEACHER_NAV, findTeacherPageMeta } from '../config/teacherNav';
+import { ACCOUNTANT_NAV, findAccountantPageMeta } from '../config/accountantNav';
 import { Avatar, timeAgo } from '../components/ui';
 import { IconBell, IconLogout, IconMenu } from '../components/Icons';
 
@@ -50,6 +51,8 @@ const ICON_MAP = {
   upload: '⬆',
   video: '📹',
   logout: '⎋',
+  rupee: '₹',
+  search: '⌕',
 };
 
 function useClickOutside(onOutside) {
@@ -289,6 +292,7 @@ export default function DashboardLayout() {
 
   const isAdmin = user?.role === 'admin';
   const isTeacher = user?.role === 'teacher';
+  const isAccountant = user?.role === 'accountant';
   const groups = useMemo(() => navForRole(user?.role), [user?.role]);
   const unread = inbox.filter((n) => !n.read).length;
 
@@ -314,12 +318,21 @@ export default function DashboardLayout() {
       if (location.pathname === '/attendance/scan') return 'Scan QR';
       if (location.pathname === '/notices') return 'Notice Board';
     }
+    if (isAccountant) {
+      const meta = findAccountantPageMeta(location.pathname);
+      if (meta) return meta.label;
+      if (location.pathname === '/') return 'Accounts Zone';
+      if (location.pathname === '/fees') return 'Collect Fees';
+      if (location.pathname === '/students') return 'Student List';
+      if (location.pathname === '/leaves') return 'Apply Leave';
+      if (location.pathname === '/notices') return 'Notice Board';
+    }
     const flat = groups.flatMap((g) => g.items);
     const match =
       flat.find((i) => i.to !== '/' && location.pathname.startsWith(i.to)) ||
       flat.find((i) => i.to === location.pathname);
     return match?.label || 'Dashboard';
-  }, [groups, location.pathname, isAdmin, isTeacher]);
+  }, [groups, location.pathname, isAdmin, isTeacher, isAccountant]);
 
   async function handleLogout() {
     try {
@@ -332,7 +345,7 @@ export default function DashboardLayout() {
     navigate('/login', { replace: true });
   }
 
-  const zoneClass = isAdmin || isTeacher ? ' admin-shell' : '';
+  const zoneClass = isAdmin || isTeacher || isAccountant ? ' admin-shell' : '';
 
   return (
     <div className={`shell${zoneClass}`}>
@@ -342,7 +355,7 @@ export default function DashboardLayout() {
           <div style={{ minWidth: 0 }}>
             <div className="brand-name">{schoolName || 'XYZ Convent School'}</div>
             <div className="brand-tag">
-              {isAdmin ? 'Admin Zone' : isTeacher ? 'Teacher Zone' : 'ERP Portal'}
+              {isAdmin ? 'Admin Zone' : isTeacher ? 'Teacher Zone' : isAccountant ? 'Accounts Zone' : 'ERP Portal'}
             </div>
           </div>
         </div>
@@ -351,6 +364,8 @@ export default function DashboardLayout() {
           <ZoneSidebar items={ADMIN_NAV} unread={unread} onLogout={handleLogout} />
         ) : isTeacher ? (
           <ZoneSidebar items={TEACHER_NAV} unread={unread} onLogout={handleLogout} showSearch />
+        ) : isAccountant ? (
+          <ZoneSidebar items={ACCOUNTANT_NAV} unread={unread} onLogout={handleLogout} showSearch />
         ) : (
           <SimpleSidebar groups={groups} unread={unread} />
         )}

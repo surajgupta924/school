@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
 import AdminZoneDashboard from './pages/AdminZoneDashboard';
 import TeacherZoneDashboard from './pages/TeacherZoneDashboard';
+import AccountantZoneDashboard from './pages/AccountantZoneDashboard';
 import AdminModulePage from './pages/AdminModulePage';
 import StudentsPage from './pages/StudentsPage';
 import TeachersPage from './pages/TeachersPage';
@@ -28,17 +29,20 @@ import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { flattenAdminRoutes } from './config/adminNav';
 import { flattenTeacherRoutes } from './config/teacherNav';
+import { flattenAccountantRoutes } from './config/accountantNav';
 import { selectUser } from './features/auth/authSlice';
 
 function HomeRouter() {
   const user = useSelector(selectUser);
   if (user?.role === 'admin') return <AdminZoneDashboard />;
   if (user?.role === 'teacher') return <TeacherZoneDashboard />;
+  if (user?.role === 'accountant') return <AccountantZoneDashboard />;
   return <DashboardHome />;
 }
 
 const adminModuleRoutes = flattenAdminRoutes();
 const teacherModuleRoutes = flattenTeacherRoutes();
+const accountantModuleRoutes = flattenAccountantRoutes();
 
 export default function App() {
   return (
@@ -72,6 +76,13 @@ export default function App() {
               .map((r) => (
                 <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
               ))}
+          </Route>
+
+          {/* Accountant Zone module pages */}
+          <Route element={<ProtectedRoute roles={['accountant', 'admin']} />}>
+            {accountantModuleRoutes.map((r) => (
+              <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
+            ))}
           </Route>
 
           {/* Teacher Zone module pages */}
