@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { QRCodeSVG } from 'qrcode.react';
@@ -43,18 +43,20 @@ export default function IdCardPage() {
 
 function StudentPicker() {
   const navigate = useNavigate();
-  const { data: students = [], isLoading, error, refetch } = useGetStudentsQuery();
   const [search, setSearch] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return students.slice(0, 40);
-    return students
-      .filter((s) =>
-        [s.name, s.admissionId, s.className].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
-      )
-      .slice(0, 40);
-  }, [students, search]);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data, isLoading, error, refetch } = useGetStudentsQuery({
+    page: 1,
+    limit: 40,
+    q: debouncedQ || undefined,
+  });
+  const rows = data?.students || [];
 
   return (
     <div className="page">

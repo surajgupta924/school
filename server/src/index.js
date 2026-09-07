@@ -7,11 +7,13 @@ import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
 import hpp from 'hpp';
 import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 import { config } from './config/index.js';
 import { connectDB } from './config/db.js';
 import { connectRedis } from './services/redis.js';
 import { initSocket } from './services/socket.js';
 import { seedIfEmpty } from './utils/seedData.js';
+import { seedFinanceIfNeeded } from './utils/seedFinance.js';
 
 import authRoutes from './routes/auth.js';
 import studentsRoutes from './routes/students.js';
@@ -21,6 +23,7 @@ import classesRoutes from './routes/classes.js';
 import attendanceRoutes from './routes/attendance.js';
 import idcardRoutes from './routes/idcard.js';
 import feeRoutes from './routes/fees.js';
+import financeRoutes from './routes/finance.js';
 import transportRoutes from './routes/transport.js';
 import examsRoutes from './routes/exams.js';
 import homeworkRoutes from './routes/homework.js';
@@ -35,6 +38,7 @@ const server = http.createServer(app);
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+app.use(compression({ threshold: 1024 }));
 
 if (config.isProd && (!config.jwtSecret || config.jwtSecret.length < 32)) {
   console.error('FATAL: JWT_SECRET must be at least 32 characters in production');
@@ -105,6 +109,7 @@ app.use('/api/classes', classesRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/idcard', idcardRoutes);
 app.use('/api/fees', feeRoutes);
+app.use('/api/finance', financeRoutes);
 app.use('/api/transport', transportRoutes);
 app.use('/api/exams', examsRoutes);
 app.use('/api/homework', homeworkRoutes);
@@ -127,6 +132,7 @@ async function start() {
   await connectRedis();
   initSocket(server);
   await seedIfEmpty();
+  await seedFinanceIfNeeded();
   server.listen(config.port, () => {
     console.log(`${config.schoolName} API running on http://localhost:${config.port}`);
   });

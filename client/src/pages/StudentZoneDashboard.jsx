@@ -38,7 +38,8 @@ export default function StudentZoneDashboard() {
   const user = useSelector(selectUser);
   const schoolName = useSelector(selectSchoolName);
   const { data: notices = [] } = useGetNoticesQuery();
-  const { data: fees = [] } = useGetFeesQuery();
+  const { data: feesData } = useGetFeesQuery({ limit: 50 });
+  const fees = feesData?.fees || [];
   const today = new Date().toISOString().slice(0, 10);
   const { data: attendance = [] } = useGetAttendanceQuery({ date: today });
 

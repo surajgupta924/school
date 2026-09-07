@@ -91,6 +91,15 @@ export const api = createApi({
     'Inbox',
     'Settings',
     'Audit',
+    'FinanceDashboard',
+    'FinanceDue',
+    'FinanceLedger',
+    'FinanceTxn',
+    'FeeType',
+    'FeeGroup',
+    'FeeDiscount',
+    'FeeChallan',
+    'DueSlip',
   ],
   endpoints: (builder) => ({
     /* ─────────────── Auth ─────────────── */
@@ -121,12 +130,38 @@ export const api = createApi({
 
     /* ─────────────── Students ─────────────── */
     getStudents: builder.query({
-      query: (params = {}) => ({ url: '/students', params }),
-      transformResponse: (res) => res?.students || [],
+      query: (params = {}) => ({
+        url: '/students',
+        params: {
+          page: params.page || 1,
+          limit: params.limit || 50,
+          q: params.q || undefined,
+          className: params.className || undefined,
+          section: params.section || undefined,
+          active: params.active,
+        },
+      }),
+      transformResponse: (res) => ({
+        students: res?.students || [],
+        total: res?.total ?? 0,
+        page: res?.page ?? 1,
+        limit: res?.limit ?? 50,
+        pages: res?.pages ?? 1,
+        hasMore: Boolean(res?.hasMore),
+      }),
       providesTags: (result) =>
-        result
-          ? [...result.map((s) => ({ type: 'Student', id: s.id })), { type: 'Student', id: 'LIST' }]
+        result?.students?.length
+          ? [
+              ...result.students.map((s) => ({ type: 'Student', id: s.id })),
+              { type: 'Student', id: 'LIST' },
+            ]
           : [{ type: 'Student', id: 'LIST' }],
+    }),
+    /** Capped list for dropdowns / attendance marking (max 500) */
+    getStudentOptions: builder.query({
+      query: (params = {}) => ({ url: '/students/options', params }),
+      transformResponse: (res) => res?.students || [],
+      providesTags: [{ type: 'Student', id: 'OPTIONS' }],
     }),
     getStudent: builder.query({
       query: (id) => `/students/${id}`,
@@ -135,15 +170,27 @@ export const api = createApi({
     }),
     createStudent: builder.mutation({
       query: (body) => ({ url: '/students', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Student', id: 'LIST' }, 'Stats'],
+      invalidatesTags: [
+        { type: 'Student', id: 'LIST' },
+        { type: 'Student', id: 'OPTIONS' },
+        'Stats',
+      ],
     }),
     updateStudent: builder.mutation({
       query: ({ id, ...body }) => ({ url: `/students/${id}`, method: 'PUT', body }),
-      invalidatesTags: (r, e, arg) => [{ type: 'Student', id: arg.id }, { type: 'Student', id: 'LIST' }],
+      invalidatesTags: (r, e, arg) => [
+        { type: 'Student', id: arg.id },
+        { type: 'Student', id: 'LIST' },
+        { type: 'Student', id: 'OPTIONS' },
+      ],
     }),
     deleteStudent: builder.mutation({
       query: (id) => ({ url: `/students/${id}`, method: 'DELETE' }),
-      invalidatesTags: [{ type: 'Student', id: 'LIST' }, 'Stats'],
+      invalidatesTags: [
+        { type: 'Student', id: 'LIST' },
+        { type: 'Student', id: 'OPTIONS' },
+        'Stats',
+      ],
     }),
 
     /* ─────────────── Teachers ─────────────── */
@@ -261,8 +308,23 @@ export const api = createApi({
 
     /* ─────────────── Fees ─────────────── */
     getFees: builder.query({
-      query: (params = {}) => ({ url: '/fees', params }),
-      transformResponse: (res) => res?.fees || [],
+      query: (params = {}) => ({
+        url: '/fees',
+        params: {
+          page: params.page || 1,
+          limit: params.limit || 50,
+          status: params.status || undefined,
+          studentId: params.studentId || undefined,
+        },
+      }),
+      transformResponse: (res) => ({
+        fees: res?.fees || [],
+        total: res?.total ?? 0,
+        page: res?.page ?? 1,
+        limit: res?.limit ?? 50,
+        pages: res?.pages ?? 1,
+        hasMore: Boolean(res?.hasMore),
+      }),
       providesTags: [{ type: 'Fee', id: 'LIST' }],
     }),
     createFee: builder.mutation({
@@ -490,6 +552,118 @@ export const api = createApi({
       query: (body) => ({ url: '/parent/alert', method: 'POST', body }),
       invalidatesTags: ['Inbox'],
     }),
+
+    /* ─────────────── Finance module (production fees ERP) ─────────────── */
+    getFinanceDashboard: builder.query({
+      query: () => '/finance/dashboard',
+      providesTags: ['FinanceDashboard'],
+    }),
+    getDueStudents: builder.query({
+      query: (params = {}) => ({ url: '/finance/due-students', params }),
+      providesTags: ['FinanceDue'],
+    }),
+    getStudentLedger: builder.query({
+      query: (id) => `/finance/student/${id}/ledger`,
+      providesTags: (r, e, id) => [{ type: 'FinanceLedger', id }],
+    }),
+    collectFees: builder.mutation({
+      query: (body) => ({ url: '/finance/collect', method: 'POST', body }),
+      invalidatesTags: ['FinanceDashboard', 'FinanceDue', 'FinanceLedger', 'Fee', 'Receipt'],
+    }),
+    getDueReport: builder.query({
+      query: (params = {}) => ({ url: '/finance/due-report', params }),
+      providesTags: ['FinanceDue'],
+    }),
+    getFinanceTransactions: builder.query({
+      query: (params = {}) => ({ url: '/finance/transactions', params }),
+      providesTags: ['FinanceTxn'],
+    }),
+    getFeeTypes: builder.query({
+      query: (params = {}) => ({ url: '/finance/types', params }),
+      providesTags: ['FeeType'],
+    }),
+    createFeeType: builder.mutation({
+      query: (body) => ({ url: '/finance/types', method: 'POST', body }),
+      invalidatesTags: ['FeeType', 'FinanceDashboard'],
+    }),
+    updateFeeType: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/finance/types/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['FeeType'],
+    }),
+    deleteFeeType: builder.mutation({
+      query: (id) => ({ url: `/finance/types/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['FeeType', 'FinanceDashboard'],
+    }),
+    getFeeGroups: builder.query({
+      query: () => '/finance/groups',
+      transformResponse: (res) => res?.groups || [],
+      providesTags: ['FeeGroup'],
+    }),
+    createFeeGroup: builder.mutation({
+      query: (body) => ({ url: '/finance/groups', method: 'POST', body }),
+      invalidatesTags: ['FeeGroup', 'FinanceDashboard'],
+    }),
+    updateFeeGroup: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/finance/groups/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['FeeGroup'],
+    }),
+    cloneFeeGroup: builder.mutation({
+      query: (id) => ({ url: `/finance/groups/${id}/clone`, method: 'POST' }),
+      invalidatesTags: ['FeeGroup'],
+    }),
+    deleteFeeGroup: builder.mutation({
+      query: (id) => ({ url: `/finance/groups/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['FeeGroup', 'FinanceDashboard'],
+    }),
+    getFeeDiscounts: builder.query({
+      query: () => '/finance/discounts',
+      transformResponse: (res) => res?.discounts || [],
+      providesTags: ['FeeDiscount'],
+    }),
+    createFeeDiscount: builder.mutation({
+      query: (body) => ({ url: '/finance/discounts', method: 'POST', body }),
+      invalidatesTags: ['FeeDiscount', 'FinanceDashboard'],
+    }),
+    updateFeeDiscount: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/finance/discounts/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['FeeDiscount'],
+    }),
+    deleteFeeDiscount: builder.mutation({
+      query: (id) => ({ url: `/finance/discounts/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['FeeDiscount', 'FinanceDashboard'],
+    }),
+    assignFeeGroup: builder.mutation({
+      query: (body) => ({ url: '/finance/assign', method: 'POST', body }),
+      invalidatesTags: ['FinanceDashboard', 'FinanceDue', 'Fee', 'FinanceLedger'],
+    }),
+    getFeeChallans: builder.query({
+      query: (params = {}) => ({ url: '/finance/challans', params }),
+      providesTags: ['FeeChallan'],
+    }),
+    createFeeChallan: builder.mutation({
+      query: (body) => ({ url: '/finance/challans', method: 'POST', body }),
+      invalidatesTags: ['FeeChallan', 'FinanceDashboard'],
+    }),
+    updateFeeChallanStatus: builder.mutation({
+      query: ({ id, status }) => ({ url: `/finance/challans/${id}/status`, method: 'PATCH', body: { status } }),
+      invalidatesTags: ['FeeChallan'],
+    }),
+    deleteFeeChallan: builder.mutation({
+      query: (id) => ({ url: `/finance/challans/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['FeeChallan'],
+    }),
+    generateDueSlips: builder.mutation({
+      query: (body) => ({ url: '/finance/due-slips/generate', method: 'POST', body }),
+      invalidatesTags: ['DueSlip'],
+    }),
+    getDueSlips: builder.query({
+      query: (params = {}) => ({ url: '/finance/due-slips', params }),
+      providesTags: ['DueSlip'],
+    }),
+    applyFeeDiscount: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/finance/fees/${id}/discount`, method: 'PATCH', body }),
+      invalidatesTags: ['FinanceLedger', 'FinanceDue', 'FinanceDashboard', 'Fee'],
+    }),
   }),
 });
 
@@ -501,6 +675,7 @@ export const {
   useChangePasswordMutation,
   useGetStatsQuery,
   useGetStudentsQuery,
+  useGetStudentOptionsQuery,
   useGetStudentQuery,
   useCreateStudentMutation,
   useUpdateStudentMutation,
@@ -574,4 +749,31 @@ export const {
   useGetParentChildrenQuery,
   useGetParentMessagesQuery,
   useSendParentAlertMutation,
+  useGetFinanceDashboardQuery,
+  useGetDueStudentsQuery,
+  useGetStudentLedgerQuery,
+  useCollectFeesMutation,
+  useGetDueReportQuery,
+  useGetFinanceTransactionsQuery,
+  useGetFeeTypesQuery,
+  useCreateFeeTypeMutation,
+  useUpdateFeeTypeMutation,
+  useDeleteFeeTypeMutation,
+  useGetFeeGroupsQuery,
+  useCreateFeeGroupMutation,
+  useUpdateFeeGroupMutation,
+  useCloneFeeGroupMutation,
+  useDeleteFeeGroupMutation,
+  useGetFeeDiscountsQuery,
+  useCreateFeeDiscountMutation,
+  useUpdateFeeDiscountMutation,
+  useDeleteFeeDiscountMutation,
+  useAssignFeeGroupMutation,
+  useGetFeeChallansQuery,
+  useCreateFeeChallanMutation,
+  useUpdateFeeChallanStatusMutation,
+  useDeleteFeeChallanMutation,
+  useGenerateDueSlipsMutation,
+  useGetDueSlipsQuery,
+  useApplyFeeDiscountMutation,
 } = api;

@@ -11,10 +11,14 @@ export const ACCOUNTANT_NAV = [
   { id: 'students', label: 'Student List', icon: 'users', to: '/students' },
 
   { type: 'section', label: 'FEES' },
-  { id: 'collect', label: 'Collect Fees', icon: 'rupee', to: '/fees' },
+  { id: 'fees-dash', label: 'Fees Dashboard', icon: 'chart', to: '/accountant/fees/dashboard' },
+  { id: 'collect', label: 'Collect Fees', icon: 'rupee', to: '/accountant/fees/collect' },
   { id: 'due', label: 'Search Due Fees', icon: 'search', to: '/accountant/fees/due' },
+  { id: 'txns', label: 'All Transactions', icon: 'list', to: '/accountant/fees/transactions' },
+  { id: 'challans', label: 'Fee Challans', icon: 'clipboard', to: '/accountant/fees/challans' },
   { id: 'assign', label: 'Assign Fees', icon: 'clipboard', to: '/accountant/fees/assign' },
   { id: 'groups', label: 'Fee Groups', icon: 'users', to: '/accountant/fees/groups' },
+  { id: 'discounts', label: 'Fees Discount', icon: 'wallet', to: '/accountant/fees/discounts' },
   { id: 'types', label: 'Fee Types', icon: 'list', to: '/accountant/fees/types' },
 
   { type: 'section', label: 'ACCOUNTS MANAGEMENT' },

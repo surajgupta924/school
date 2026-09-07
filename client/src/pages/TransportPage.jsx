@@ -12,7 +12,7 @@ import {
   useGetAssignmentsQuery,
   useGetRoutesQuery,
   useGetStaffQuery,
-  useGetStudentsQuery,
+  useGetStudentOptionsQuery,
   useGetVehiclesQuery,
   useUpdateRouteMutation,
   useUpdateVehicleMutation,
@@ -569,7 +569,7 @@ function VehiclesTab({ vehicles, routes, isAdmin }) {
 function AssignmentsTab({ assignments, routes, vehicles, isAdmin }) {
   const toast = useToast();
   const { isLoading, error, refetch } = useGetAssignmentsQuery();
-  const { data: students = [] } = useGetStudentsQuery();
+  const { data: students = [] } = useGetStudentOptionsQuery();
   const [createAssignment, { isLoading: saving }] = useCreateAssignmentMutation();
   const [deleteAssignment, { isLoading: deleting }] = useDeleteAssignmentMutation();
 

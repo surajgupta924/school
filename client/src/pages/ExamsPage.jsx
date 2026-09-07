@@ -5,7 +5,7 @@ import {
   useDeleteExamMutation,
   useGetExamResultsQuery,
   useGetExamsQuery,
-  useGetStudentsQuery,
+  useGetStudentOptionsQuery,
   useSaveExamResultsMutation,
 } from '../app/api';
 import { selectRole } from '../features/auth/authSlice';
@@ -239,7 +239,10 @@ export default function ExamsPage() {
 function ResultsModal({ exam, onClose, canManage }) {
   const toast = useToast();
   const { data: results = [], isLoading } = useGetExamResultsQuery(exam?._id, { skip: !exam });
-  const { data: students = [] } = useGetStudentsQuery(undefined, { skip: !exam || !canManage });
+  const { data: students = [] } = useGetStudentOptionsQuery(
+    exam?.className ? { className: exam.className } : {},
+    { skip: !exam || !canManage }
+  );
   const [saveResults, { isLoading: saving }] = useSaveExamResultsMutation();
   const [marks, setMarks] = useState({});
 

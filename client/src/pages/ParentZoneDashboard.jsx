@@ -40,7 +40,8 @@ export default function ParentZoneDashboard() {
   const user = useSelector(selectUser);
   const schoolName = useSelector(selectSchoolName);
   const { data: notices = [] } = useGetNoticesQuery();
-  const { data: fees = [] } = useGetFeesQuery();
+  const { data: feesData } = useGetFeesQuery({ limit: 50 });
+  const fees = feesData?.fees || [];
   const { data: children = [], isLoading: kidsLoading } = useGetParentChildrenQuery();
 
   const [activeChildId, setActiveChildId] = useState(() => localStorage.getItem(CHILD_KEY) || '');

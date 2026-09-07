@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -28,6 +28,7 @@ import {
 import { IconEdit, IconIdCard, IconPlus, IconTrash, IconUsers } from '../components/Icons';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+const PAGE_SIZE = 50;
 
 const EMPTY = {
   name: '',
@@ -48,34 +49,45 @@ export default function StudentsPage() {
   const isAdmin = role === 'admin';
   const toast = useToast();
 
-  const { data: students = [], isLoading, error, refetch } = useGetStudentsQuery();
-  const [createStudent, { isLoading: creating }] = useCreateStudentMutation();
-  const [updateStudent, { isLoading: updating }] = useUpdateStudentMutation();
-  const [deleteStudent, { isLoading: deleting }] = useDeleteStudentMutation();
-
   const [search, setSearch] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [classFilter, setClassFilter] = useState('');
+  const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [formError, setFormError] = useState('');
   const [confirm, setConfirm] = useState(null);
 
-  const classes = useMemo(
-    () => [...new Set(students.map((s) => s.className).filter(Boolean))].sort(),
-    [students]
-  );
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return students.filter((s) => {
-      if (classFilter && s.className !== classFilter) return false;
-      if (!q) return true;
-      return [s.name, s.email, s.admissionId, s.className, s.section, s.phone]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [students, search, classFilter]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, classFilter]);
+
+  const { data, isLoading, error, refetch } = useGetStudentsQuery({
+    page,
+    limit: PAGE_SIZE,
+    q: debouncedQ || undefined,
+    className: classFilter || undefined,
+  });
+
+  const students = data?.students || [];
+  const total = data?.total || 0;
+  const pages = data?.pages || 1;
+
+  const [createStudent, { isLoading: creating }] = useCreateStudentMutation();
+  const [updateStudent, { isLoading: updating }] = useUpdateStudentMutation();
+  const [deleteStudent, { isLoading: deleting }] = useDeleteStudentMutation();
+
+  const classes = useMemo(() => {
+    const fromPage = students.map((s) => s.className).filter(Boolean);
+    const known = ['Nursery', 'LKG', 'UKG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+    return [...new Set([...known, ...fromPage])].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+  }, [students]);
 
   function openCreate() {
     setEditing(null);
@@ -106,8 +118,8 @@ export default function StudentsPage() {
       setFormError('Name and email are required.');
       return;
     }
-    if (!editing && form.password.length < 6) {
-      setFormError('Password must be at least 6 characters.');
+    if (!editing && form.password.length < 8) {
+      setFormError('Password must be at least 8 characters.');
       return;
     }
 
@@ -201,7 +213,7 @@ export default function StudentsPage() {
     <div className="page">
       <PageHeader
         title="Students"
-        subtitle={`${students.length} active enrolments`}
+        subtitle={`${total.toLocaleString()} active enrolments`}
         actions={
           isAdmin ? (
             <button type="button" className="btn" onClick={openCreate}>
@@ -236,28 +248,28 @@ export default function StudentsPage() {
               </button>
             )}
             <span className="t-muted" style={{ marginLeft: 'auto', fontSize: 13 }}>
-              {rows.length} shown
+              Page {page} of {pages} · {students.length} shown
             </span>
           </div>
         </div>
 
         <DataTable
           columns={columns}
-          rows={rows}
+          rows={students}
           loading={isLoading}
           error={error}
           onRetry={refetch}
           empty={
             <EmptyState
               icon={<IconUsers size={22} />}
-              title={students.length ? 'No matching students' : 'No students yet'}
+              title={total ? 'No matching students' : 'No students yet'}
               text={
-                students.length
+                total
                   ? 'Try a different search term or clear the class filter.'
                   : 'Enrol your first student to start tracking attendance, fees and transport.'
               }
               action={
-                isAdmin && !students.length ? (
+                isAdmin && !total ? (
                   <button type="button" className="btn" onClick={openCreate}>
                     <IconPlus size={16} /> Add student
                   </button>
@@ -266,6 +278,20 @@ export default function StudentsPage() {
             />
           }
         />
+
+        {pages > 1 ? (
+          <div className="toolbar" style={{ padding: 14, borderTop: '1px solid var(--line)', justifyContent: 'flex-end', gap: 8 }}>
+            <button type="button" className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </button>
+            <span className="t-muted" style={{ fontSize: 13, alignSelf: 'center' }}>
+              {page} / {pages}
+            </span>
+            <button type="button" className="btn btn-secondary btn-sm" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </button>
+          </div>
+        ) : null}
       </Card>
 
       <Modal
@@ -303,7 +329,7 @@ export default function StudentsPage() {
                 type="password"
                 value={form.password}
                 onChange={set('password')}
-                placeholder="Minimum 6 characters"
+                placeholder="Minimum 8 characters"
               />
             ) : null}
             <Input

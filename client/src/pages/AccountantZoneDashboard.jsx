@@ -42,7 +42,8 @@ export default function AccountantZoneDashboard() {
   const { data: stats } = useGetStatsQuery(undefined, { pollingInterval: 60000 });
   const { data: notices = [] } = useGetNoticesQuery();
   const { data: inbox = [] } = useGetInboxQuery();
-  const { data: fees = [] } = useGetFeesQuery();
+  const { data: feesData } = useGetFeesQuery({ limit: 100 });
+  const fees = feesData?.fees || [];
   const [appQuery, setAppQuery] = useState('');
 
   const collected = fees.filter((f) => f.status === 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0);

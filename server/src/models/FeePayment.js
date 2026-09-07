@@ -7,7 +7,7 @@ const feePaymentSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     method: {
       type: String,
-      enum: ['cash', 'upi', 'card', 'cheque', 'online'],
+      enum: ['cash', 'upi', 'card', 'cheque', 'online', 'netbanking', 'wallet', 'qr'],
       default: 'cash',
     },
     receiptNo: { type: String, required: true, unique: true },
@@ -20,5 +20,8 @@ const feePaymentSchema = new mongoose.Schema(
 );
 
 feePaymentSchema.index({ studentId: 1, paidAt: -1 });
+feePaymentSchema.index({ paidAt: -1 });
+feePaymentSchema.index({ method: 1, paidAt: -1 });
+feePaymentSchema.index({ collectedBy: 1, paidAt: -1 });
 
 export const FeePayment = mongoose.model('FeePayment', feePaymentSchema);

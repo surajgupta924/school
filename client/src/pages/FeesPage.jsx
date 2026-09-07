@@ -4,7 +4,7 @@ import {
   useCreateFeeMutation,
   useGetFeesQuery,
   useGetReceiptsQuery,
-  useGetStudentsQuery,
+  useGetStudentOptionsQuery,
   usePayFeeMutation,
   useSendFeeRemindersMutation,
 } from '../app/api';
@@ -55,10 +55,18 @@ export default function FeesPage() {
   const [tab, setTab] = useState('invoices');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [feePage, setFeePage] = useState(1);
 
-  const { data: fees = [], isLoading, error, refetch } = useGetFeesQuery();
+  const { data: feesData, isLoading, error, refetch } = useGetFeesQuery({
+    page: feePage,
+    limit: 50,
+    status: statusFilter || undefined,
+  });
+  const fees = feesData?.fees || [];
+  const feePages = feesData?.pages || 1;
+  const feeTotal = feesData?.total || 0;
   const { data: receipts = [] } = useGetReceiptsQuery();
-  const { data: students = [] } = useGetStudentsQuery(undefined, { skip: !canManage });
+  const { data: students = [] } = useGetStudentOptionsQuery(undefined, { skip: !canManage });
 
   const [createFee, { isLoading: creating }] = useCreateFeeMutation();
   const [payFee, { isLoading: paying }] = usePayFeeMutation();
@@ -86,14 +94,13 @@ export default function FeesPage() {
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return fees.filter((f) => {
-      if (statusFilter && f.status !== statusFilter) return false;
-      if (!q) return true;
-      return [f.title, f.studentId?.name, f.studentId?.admissionId, f.category]
+    if (!q) return fees;
+    return fees.filter((f) =>
+      [f.title, f.studentId?.name, f.studentId?.admissionId, f.category]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [fees, search, statusFilter]);
+        .some((v) => String(v).toLowerCase().includes(q))
+    );
+  }, [fees, search]);
 
   const setF = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
@@ -242,7 +249,7 @@ export default function FeesPage() {
       />
 
       <div className="stat-grid">
-        <StatCard label="Total billed" value={money(totals.billed)} meta={`${fees.length} invoices`} icon={<IconRupee size={20} />} />
+        <StatCard label="Total billed" value={money(totals.billed)} meta={`${feeTotal} invoices (page view)`} icon={<IconRupee size={20} />} />
         <StatCard label="Collected" value={money(totals.collected)} tone="green" icon={<IconRupee size={20} />} />
         <StatCard label="Outstanding" value={money(totals.outstanding)} tone="amber" icon={<IconRupee size={20} />} />
         <StatCard label="Overdue" value={money(totals.overdue)} tone="red" icon={<IconRupee size={20} />} />
@@ -250,7 +257,7 @@ export default function FeesPage() {
 
       <Tabs
         tabs={[
-          { value: 'invoices', label: 'Invoices', count: fees.length },
+          { value: 'invoices', label: 'Invoices', count: feeTotal },
           { value: 'receipts', label: 'Receipts', count: receipts.length },
         ]}
         value={tab}
@@ -262,7 +269,15 @@ export default function FeesPage() {
           <div style={{ padding: 14, borderBottom: '1px solid var(--line)' }}>
             <div className="toolbar">
               <SearchInput value={search} onChange={setSearch} placeholder="Search fees or students…" />
-              <select className="select" style={{ width: 160 }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <select
+                className="select"
+                style={{ width: 160 }}
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setFeePage(1);
+                }}
+              >
                 <option value="">All statuses</option>
                 <option value="pending">Pending</option>
                 <option value="partial">Partial</option>
@@ -270,7 +285,7 @@ export default function FeesPage() {
                 <option value="overdue">Overdue</option>
               </select>
               <span className="t-muted" style={{ marginLeft: 'auto', fontSize: 13 }}>
-                {rows.length} shown
+                Page {feePage} of {feePages} · {rows.length} shown
               </span>
             </div>
           </div>
@@ -285,14 +300,14 @@ export default function FeesPage() {
             empty={
               <EmptyState
                 icon={<IconRupee size={22} />}
-                title={fees.length ? 'No matching invoices' : 'No fees raised'}
+                title={feeTotal ? 'No matching invoices' : 'No fees raised'}
                 text={
                   canManage
                     ? 'Create an invoice to notify the student and their parents by email and in-app alert.'
                     : 'You have no outstanding fees right now.'
                 }
                 action={
-                  canManage && !fees.length ? (
+                  canManage && !feeTotal ? (
                     <button type="button" className="btn" onClick={() => setCreateOpen(true)}>
                       <IconPlus size={16} /> Create fee
                     </button>
@@ -301,6 +316,20 @@ export default function FeesPage() {
               />
             }
           />
+
+          {feePages > 1 ? (
+            <div className="toolbar" style={{ padding: 14, borderTop: '1px solid var(--line)', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={feePage <= 1} onClick={() => setFeePage((p) => p - 1)}>
+                Previous
+              </button>
+              <span className="t-muted" style={{ fontSize: 13, alignSelf: 'center' }}>
+                {feePage} / {feePages}
+              </span>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={feePage >= feePages} onClick={() => setFeePage((p) => p + 1)}>
+                Next
+              </button>
+            </div>
+          ) : null}
         </Card>
       ) : (
         <Card tight>

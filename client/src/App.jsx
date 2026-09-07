@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
 import AdminZoneDashboard from './pages/AdminZoneDashboard';
 import TeacherZoneDashboard from './pages/TeacherZoneDashboard';
+import AccountantZoneDashboard from './pages/AccountantZoneDashboard';
 import StudentZoneDashboard from './pages/StudentZoneDashboard';
 import ParentZoneDashboard from './pages/ParentZoneDashboard';
 import AdminModulePage from './pages/AdminModulePage';
@@ -18,6 +19,20 @@ import AttendancePage from './pages/AttendancePage';
 import QrScannerPage from './pages/QrScannerPage';
 import IdCardPage from './pages/IdCardPage';
 import FeesPage from './pages/FeesPage';
+import FeesDashboardPage from './pages/fees/FeesDashboardPage';
+import CollectFeesPage from './pages/fees/CollectFeesPage';
+import {
+  AssignFeesPage,
+  DueSlipHistoryPage,
+  FeeChallansPage,
+  FeeDiscountsPage,
+  FeeGroupsPage,
+  FeeTransactionsPage,
+  FeeTypesPage,
+  FeesCarryForwardPage,
+  GenerateDueSlipPage,
+  SearchDueFeesPage,
+} from './pages/fees/FeeOpsPages';
 import TransportPage from './pages/TransportPage';
 import LiveTrackPage from './pages/LiveTrackPage';
 import DriverConsolePage from './pages/DriverConsolePage';
@@ -45,6 +60,12 @@ function HomeRouter() {
   return <DashboardHome />;
 }
 
+function FeesEntry() {
+  const user = useSelector(selectUser);
+  if (['admin', 'accountant'].includes(user?.role)) return <CollectFeesPage />;
+  return <FeesPage />;
+}
+
 const adminModuleRoutes = flattenAdminRoutes();
 const teacherModuleRoutes = flattenTeacherRoutes();
 const accountantModuleRoutes = flattenAccountantRoutes();
@@ -66,7 +87,20 @@ export default function App() {
           <Route element={<ProtectedRoute roles={['admin']} />}>
             <Route path="admin/students/list" element={<StudentsPage />} />
             <Route path="admin/academics/classes" element={<ClassesPage />} />
-            <Route path="admin/fees/collect" element={<FeesPage />} />
+            <Route path="admin/fees/dashboard" element={<FeesDashboardPage />} />
+            <Route path="admin/fees/collect" element={<CollectFeesPage />} />
+            <Route path="admin/fees/collect/:studentId" element={<CollectFeesPage />} />
+            <Route path="admin/fees/due" element={<SearchDueFeesPage />} />
+            <Route path="admin/fees/transactions" element={<FeeTransactionsPage />} />
+            <Route path="admin/fees/online" element={<FeeTransactionsPage onlineOnly />} />
+            <Route path="admin/fees/challans" element={<FeeChallansPage />} />
+            <Route path="admin/fees/assign" element={<AssignFeesPage />} />
+            <Route path="admin/fees/carry-forward" element={<FeesCarryForwardPage />} />
+            <Route path="admin/fees/groups" element={<FeeGroupsPage />} />
+            <Route path="admin/fees/discounts" element={<FeeDiscountsPage />} />
+            <Route path="admin/fees/types" element={<FeeTypesPage />} />
+            <Route path="admin/fees/due-slip" element={<GenerateDueSlipPage />} />
+            <Route path="admin/fees/due-slip-history" element={<DueSlipHistoryPage />} />
             <Route path="admin/hr/staff" element={<StaffPage />} />
             <Route path="admin/exams/offline/manage" element={<ExamsPage />} />
             {adminModuleRoutes
@@ -75,7 +109,19 @@ export default function App() {
                   ![
                     '/admin/students/list',
                     '/admin/academics/classes',
+                    '/admin/fees/dashboard',
                     '/admin/fees/collect',
+                    '/admin/fees/due',
+                    '/admin/fees/transactions',
+                    '/admin/fees/online',
+                    '/admin/fees/challans',
+                    '/admin/fees/assign',
+                    '/admin/fees/carry-forward',
+                    '/admin/fees/groups',
+                    '/admin/fees/discounts',
+                    '/admin/fees/types',
+                    '/admin/fees/due-slip',
+                    '/admin/fees/due-slip-history',
                     '/admin/hr/staff',
                     '/admin/exams/offline/manage',
                   ].includes(r.path)
@@ -99,11 +145,36 @@ export default function App() {
             ))}
           </Route>
 
-          {/* Accountant Zone module pages */}
+          {/* Accountant Zone — real finance pages + remaining placeholders */}
           <Route element={<ProtectedRoute roles={['accountant', 'admin']} />}>
-            {accountantModuleRoutes.map((r) => (
-              <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
-            ))}
+            <Route path="accountant/fees/dashboard" element={<FeesDashboardPage />} />
+            <Route path="accountant/fees/collect" element={<CollectFeesPage />} />
+            <Route path="accountant/fees/collect/:studentId" element={<CollectFeesPage />} />
+            <Route path="accountant/fees/due" element={<SearchDueFeesPage />} />
+            <Route path="accountant/fees/assign" element={<AssignFeesPage />} />
+            <Route path="accountant/fees/groups" element={<FeeGroupsPage />} />
+            <Route path="accountant/fees/types" element={<FeeTypesPage />} />
+            <Route path="accountant/fees/transactions" element={<FeeTransactionsPage />} />
+            <Route path="accountant/fees/challans" element={<FeeChallansPage />} />
+            <Route path="accountant/fees/discounts" element={<FeeDiscountsPage />} />
+            {accountantModuleRoutes
+              .filter(
+                (r) =>
+                  ![
+                    '/accountant/fees/dashboard',
+                    '/accountant/fees/collect',
+                    '/accountant/fees/due',
+                    '/accountant/fees/assign',
+                    '/accountant/fees/groups',
+                    '/accountant/fees/types',
+                    '/accountant/fees/transactions',
+                    '/accountant/fees/challans',
+                    '/accountant/fees/discounts',
+                  ].includes(r.path)
+              )
+              .map((r) => (
+                <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
+              ))}
           </Route>
 
           {/* Teacher Zone module pages */}
@@ -139,7 +210,10 @@ export default function App() {
           </Route>
 
           <Route element={<ProtectedRoute roles={['admin', 'accountant', 'student', 'parent']} />}>
-            <Route path="fees" element={<FeesPage />} />
+            <Route path="fees" element={<FeesEntry />} />
+          </Route>
+          <Route element={<ProtectedRoute roles={['admin', 'accountant']} />}>
+            <Route path="fees/:studentId" element={<CollectFeesPage />} />
           </Route>
 
           <Route element={<ProtectedRoute roles={['admin', 'accountant']} />}>

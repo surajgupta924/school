@@ -1,6 +1,11 @@
 import { User } from '../models/User.js';
 import { Fee } from '../models/Fee.js';
 import { FeePayment } from '../models/FeePayment.js';
+import { FeeType } from '../models/FeeType.js';
+import { FeeGroup } from '../models/FeeGroup.js';
+import { FeeDiscount } from '../models/FeeDiscount.js';
+import { FeeChallan } from '../models/FeeChallan.js';
+import { DueSlip } from '../models/DueSlip.js';
 import { Notice } from '../models/Notice.js';
 import { Attendance } from '../models/Attendance.js';
 import { Notification } from '../models/Notification.js';
@@ -349,6 +354,11 @@ export async function clearAllData() {
     User.deleteMany({}),
     Fee.deleteMany({}),
     FeePayment.deleteMany({}),
+    FeeType.deleteMany({}),
+    FeeGroup.deleteMany({}),
+    FeeDiscount.deleteMany({}),
+    FeeChallan.deleteMany({}),
+    DueSlip.deleteMany({}),
     Notice.deleteMany({}),
     Attendance.deleteMany({}),
     Notification.deleteMany({}),

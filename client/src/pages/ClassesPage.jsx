@@ -4,7 +4,7 @@ import {
   useCreateClassMutation,
   useDeleteClassMutation,
   useGetClassesQuery,
-  useGetStudentsQuery,
+  useGetStudentOptionsQuery,
   useGetTeachersQuery,
   useUpdateClassMutation,
 } from '../app/api';
@@ -36,7 +36,7 @@ export default function ClassesPage() {
   const { data: teachers = [] } = useGetTeachersQuery(undefined, {
     skip: !['admin', 'accountant'].includes(role),
   });
-  const { data: students = [] } = useGetStudentsQuery();
+  const { data: students = [] } = useGetStudentOptionsQuery();
 
   const [createClass, { isLoading: creating }] = useCreateClassMutation();
   const [updateClass, { isLoading: updating }] = useUpdateClassMutation();

@@ -33,6 +33,11 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+userSchema.index({ role: 1, isActive: 1, name: 1 });
+userSchema.index({ role: 1, className: 1, section: 1, isActive: 1 });
+userSchema.index({ admissionId: 1 }, { unique: true, sparse: true });
+userSchema.index({ name: 'text', email: 'text', admissionId: 'text' });
+
 userSchema.pre('save', async function hashPassword(next) {
   if (this.parentOf?.length && (!this.studentIds || this.studentIds.length === 0)) {
     this.studentIds = this.parentOf;

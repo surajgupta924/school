@@ -13,6 +13,9 @@ function receiptNo() {
 }
 
 router.get('/', protect, async (req, res) => {
+  const { parsePagination } = await import('../utils/pagination.js');
+  const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 50, maxLimit: 200 });
+
   const filter = {};
   if (req.user.role === 'student') {
     filter.studentId = req.user._id;
@@ -24,11 +27,24 @@ router.get('/', protect, async (req, res) => {
   }
   if (req.query.status) filter.status = req.query.status;
 
-  const fees = await Fee.find(filter)
-    .populate('studentId', 'name admissionId className section')
-    .sort({ dueDate: -1 });
+  const [fees, total] = await Promise.all([
+    Fee.find(filter)
+      .populate('studentId', 'name admissionId className section')
+      .sort({ dueDate: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Fee.countDocuments(filter),
+  ]);
 
-  res.json({ fees });
+  res.json({
+    fees,
+    total,
+    page,
+    limit,
+    pages: Math.max(1, Math.ceil(total / limit)),
+    hasMore: page * limit < total,
+  });
 });
 
 router.get('/receipts', protect, authorize('admin', 'accountant', 'student', 'parent'), async (req, res) => {
@@ -110,7 +126,12 @@ router.patch('/:id/pay', protect, authorize('admin', 'accountant'), async (req, 
   const fee = await Fee.findById(req.params.id);
   if (!fee) return res.status(404).json({ message: 'Fee not found' });
 
-  const payAmount = Number(req.body.amount || fee.amount - (fee.amountPaid || 0));
+  const due =
+    (Number(fee.amount) || 0) +
+    (Number(fee.fine) || 0) -
+    (Number(fee.discount) || 0) -
+    (Number(fee.amountPaid) || 0);
+  const payAmount = Number(req.body.amount != null ? req.body.amount : Math.max(0, due));
   const method = req.body.method || 'cash';
   const rcp = receiptNo();
 
@@ -126,7 +147,8 @@ router.patch('/:id/pay', protect, authorize('admin', 'accountant'), async (req, 
   });
 
   fee.amountPaid = (fee.amountPaid || 0) + payAmount;
-  if (fee.amountPaid >= fee.amount) {
+  const totalDue = (Number(fee.amount) || 0) + (Number(fee.fine) || 0) - (Number(fee.discount) || 0);
+  if (fee.amountPaid >= totalDue) {
     fee.status = 'paid';
     fee.paidAt = new Date();
     fee.receiptNo = rcp;

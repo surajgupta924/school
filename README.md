@@ -61,11 +61,25 @@ Fee create/pay/reminders and absence alerts send: **in-app + email + WhatsApp**.
 
 - Short-lived access JWT (15m) + refresh token (hashed, httpOnly cookie)
 - Login rate limit (20 / 15 min)
-- Helmet, CORS allowlist, HPP, mongo-sanitize
+- Helmet, CORS allowlist, HPP, mongo-sanitize, response compression
 - Role-based route guards (client + server)
 - Audit log on sensitive actions
 - Production requires strong `JWT_SECRET` (32+ chars)
 - Hides internal errors when `NODE_ENV=production`
+
+## Scale (1000+ students)
+
+Built for schools with large enrolments:
+
+- **Paginated APIs** for students, fees, and attendance (`page`, `limit`, `q`, filters)
+- **MongoDB indexes** on role/class/admission, fees, and attendance
+- **Connection pooling** (up to 50 in production) + zlib wire compression
+- **Redis cache** (30s) on student list queries; memory fallback if Redis is down
+- **Bulk-safe limits**: student import ≤200/request, attendance mark ≤300/request
+- **Dropdown endpoint** `/api/students/options` (capped at 500) so forms stay fast
+- Client list pages use server-side search + pagination (not loading all rows at once)
+
+Recommended production hosting: VPS + Nginx + SSL, MongoDB Atlas, Redis, PM2.
 
 ## Quick start
 

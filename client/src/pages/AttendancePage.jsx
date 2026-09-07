@@ -5,7 +5,7 @@ import {
   useGetAttendanceQuery,
   useGetAttendanceReportQuery,
   useGetAttendanceTodayQuery,
-  useGetStudentsQuery,
+  useGetStudentOptionsQuery,
   useMarkAttendanceMutation,
 } from '../app/api';
 import { selectRole } from '../features/auth/authSlice';
@@ -74,7 +74,7 @@ export default function AttendancePage() {
 
 function MarkTab() {
   const toast = useToast();
-  const { data: students = [], isLoading } = useGetStudentsQuery();
+  const { data: students = [], isLoading } = useGetStudentOptionsQuery(className ? { className } : {});
   const [markAttendance, { isLoading: saving }] = useMarkAttendanceMutation();
 
   const [date, setDate] = useState(todayISO());
@@ -348,7 +348,7 @@ function ReportsTab() {
   const [to, setTo] = useState(todayISO());
   const [className, setClassName] = useState('');
 
-  const { data: students = [] } = useGetStudentsQuery();
+  const { data: students = [] } = useGetStudentOptionsQuery();
   const classes = useMemo(
     () => [...new Set(students.map((s) => s.className).filter(Boolean))].sort(),
     [students]

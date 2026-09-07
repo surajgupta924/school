@@ -54,13 +54,28 @@ router.get('/', protect, async (req, res) => {
     filter.studentId = studentId;
   }
 
-  const records = await Attendance.find(filter)
-    .populate('studentId', 'name admissionId className section')
-    .populate('markedBy', 'name role')
-    .sort({ date: -1 })
-    .limit(200);
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 100));
+  const skip = (page - 1) * limit;
 
-  res.json({ attendance: records });
+  const [records, total] = await Promise.all([
+    Attendance.find(filter)
+      .populate('studentId', 'name admissionId className section')
+      .populate('markedBy', 'name role')
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Attendance.countDocuments(filter),
+  ]);
+
+  res.json({
+    attendance: records,
+    total,
+    page,
+    limit,
+    pages: Math.max(1, Math.ceil(total / limit)),
+  });
 });
 
 router.get('/today', protect, authorize('admin', 'teacher'), async (req, res) => {
@@ -121,6 +136,9 @@ router.post('/mark', protect, authorize('admin', 'teacher'), async (req, res) =>
   const { records, date, session = 'morning' } = req.body;
   if (!Array.isArray(records) || !date) {
     return res.status(400).json({ message: 'date and records[] are required' });
+  }
+  if (records.length > 300) {
+    return res.status(400).json({ message: 'Max 300 attendance rows per request' });
   }
 
   const results = [];

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useCreateParentMutation, useGetParentsQuery, useGetStudentsQuery } from '../app/api';
+import { useCreateParentMutation, useGetParentsQuery, useGetStudentOptionsQuery } from '../app/api';
 import {
   Badge,
   Card,
@@ -21,7 +21,7 @@ const EMPTY = { name: '', email: '', password: '', phone: '', address: '', paren
 export default function ParentsPage() {
   const toast = useToast();
   const { data: parents = [], isLoading, error, refetch } = useGetParentsQuery();
-  const { data: students = [] } = useGetStudentsQuery();
+  const { data: students = [] } = useGetStudentOptionsQuery();
   const [createParent, { isLoading: creating }] = useCreateParentMutation();
 
   const [search, setSearch] = useState('');
