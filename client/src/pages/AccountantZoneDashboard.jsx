@@ -42,16 +42,11 @@ export default function AccountantZoneDashboard() {
   const { data: stats } = useGetStatsQuery(undefined, { pollingInterval: 60000 });
   const { data: notices = [] } = useGetNoticesQuery();
   const { data: inbox = [] } = useGetInboxQuery();
-  const { data: feesData } = useGetFeesQuery();
+  const { data: fees = [] } = useGetFeesQuery();
   const [appQuery, setAppQuery] = useState('');
 
-  const fees = feesData?.fees || feesData || [];
-  const collected = Array.isArray(fees)
-    ? fees.filter((f) => f.status === 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0)
-    : 5800;
-  const pending = Array.isArray(fees)
-    ? fees.filter((f) => f.status !== 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0)
-    : 8060710;
+  const collected = fees.filter((f) => f.status === 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const pending = fees.filter((f) => f.status !== 'paid').reduce((s, f) => s + (Number(f.amount) || 0), 0);
 
   const apps = useMemo(() => {
     const q = appQuery.trim().toLowerCase();
@@ -60,7 +55,7 @@ export default function AccountantZoneDashboard() {
   }, [appQuery]);
 
   const liveFeed = useMemo(() => {
-    const fromFees = (Array.isArray(fees) ? fees : []).slice(0, 4).map((f) => ({
+    const fromFees = fees.slice(0, 4).map((f) => ({
       time: new Date(f.updatedAt || f.createdAt || Date.now()).toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
