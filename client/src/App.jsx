@@ -1,8 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
+import AdminZoneDashboard from './pages/AdminZoneDashboard';
+import AdminModulePage from './pages/AdminModulePage';
 import StudentsPage from './pages/StudentsPage';
 import TeachersPage from './pages/TeachersPage';
 import ParentsPage from './pages/ParentsPage';
@@ -22,6 +25,16 @@ import NoticesPage from './pages/NoticesPage';
 import InboxPage from './pages/InboxPage';
 import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import { flattenAdminRoutes } from './config/adminNav';
+import { selectUser } from './features/auth/authSlice';
+
+function HomeRouter() {
+  const user = useSelector(selectUser);
+  if (user?.role === 'admin') return <AdminZoneDashboard />;
+  return <DashboardHome />;
+}
+
+const adminModuleRoutes = flattenAdminRoutes();
 
 export default function App() {
   return (
@@ -30,9 +43,32 @@ export default function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
-          <Route index element={<DashboardHome />} />
+          <Route index element={<HomeRouter />} />
           <Route path="inbox" element={<InboxPage />} />
           <Route path="notices" element={<NoticesPage />} />
+
+          {/* Full Admin Zone module pages from sidebar sub-menus */}
+          <Route element={<ProtectedRoute roles={['admin']} />}>
+            <Route path="admin/students/list" element={<StudentsPage />} />
+            <Route path="admin/academics/classes" element={<ClassesPage />} />
+            <Route path="admin/fees/collect" element={<FeesPage />} />
+            <Route path="admin/hr/staff" element={<StaffPage />} />
+            <Route path="admin/exams/offline/manage" element={<ExamsPage />} />
+            {adminModuleRoutes
+              .filter(
+                (r) =>
+                  ![
+                    '/admin/students/list',
+                    '/admin/academics/classes',
+                    '/admin/fees/collect',
+                    '/admin/hr/staff',
+                    '/admin/exams/offline/manage',
+                  ].includes(r.path)
+              )
+              .map((r) => (
+                <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
+              ))}
+          </Route>
 
           <Route element={<ProtectedRoute roles={['admin', 'teacher', 'accountant']} />}>
             <Route path="students" element={<StudentsPage />} />
