@@ -28,35 +28,56 @@ import leavesRoutes from './routes/leaves.js';
 import notificationRoutes from './routes/notifications.js';
 import dashboardRoutes from './routes/dashboard.js';
 import settingsRoutes from './routes/settings.js';
+import parentRoutes from './routes/parent.js';
 
 const app = express();
 const server = http.createServer(app);
 
 app.set('trust proxy', 1);
+app.disable('x-powered-by');
+
+if (config.isProd && (!config.jwtSecret || config.jwtSecret.length < 32)) {
+  console.error('FATAL: JWT_SECRET must be at least 32 characters in production');
+  process.exit(1);
+}
 
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: config.isProd ? undefined : false,
   })
 );
 app.use(
   cors({
     origin: config.clientUrl,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '200kb' }));
+app.use(express.urlencoded({ extended: true, limit: '200kb' }));
 app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(hpp());
-app.use(morgan('dev'));
+app.use(morgan(config.isProd ? 'combined' : 'dev'));
 
 app.use(
   '/api/',
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000,
+    max: config.isProd ? 400 : 1000,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
+
+app.use(
+  '/api/auth/login',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    message: { message: 'Too many login attempts. Try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
   })
@@ -67,6 +88,12 @@ app.get('/api/health', (_req, res) => {
     ok: true,
     school: config.schoolName,
     time: new Date().toISOString(),
+    notifications: {
+      email: Boolean(config.smtp.user && config.smtp.pass),
+      whatsapp: Boolean(
+        (config.whatsapp.token && config.whatsapp.phoneNumberId) || config.whatsapp.callMeBotKey
+      ),
+    },
   });
 });
 
@@ -85,10 +112,14 @@ app.use('/api/leaves', leavesRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/parent', parentRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
-  res.status(err.status || 500).json({ message: err.message || 'Server error' });
+  const status = err.status || 500;
+  res.status(status).json({
+    message: config.isProd && status === 500 ? 'Server error' : err.message || 'Server error',
+  });
 });
 
 async function start() {

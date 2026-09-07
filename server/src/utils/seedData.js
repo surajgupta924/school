@@ -113,7 +113,7 @@ export async function seedIfEmpty() {
     email: 'parent@xyzconvent.edu',
     password: 'parent123',
     role: 'parent',
-    phone: '9000000005',
+    phone: '919000000005',
     parentOf: [student._id],
     studentIds: [student._id],
     address: 'Flat 12B, Pocket 3, Dwarka Sec 12, New Delhi',

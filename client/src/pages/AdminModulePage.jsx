@@ -4,6 +4,7 @@ import { findAdminPageMeta } from '../config/adminNav';
 import { findTeacherPageMeta } from '../config/teacherNav';
 import { findAccountantPageMeta } from '../config/accountantNav';
 import { findStudentPageMeta } from '../config/studentNav';
+import { findParentPageMeta } from '../config/parentNav';
 import { getModuleConfig } from '../config/moduleDefs';
 
 function findPageMeta(pathname) {
@@ -11,7 +12,8 @@ function findPageMeta(pathname) {
     findAdminPageMeta(pathname) ||
     findTeacherPageMeta(pathname) ||
     findAccountantPageMeta(pathname) ||
-    findStudentPageMeta(pathname) || { label: 'Module', parent: 'Workspace' }
+    findStudentPageMeta(pathname) ||
+    findParentPageMeta(pathname) || { label: 'Module', parent: 'Workspace' }
   );
 }
 

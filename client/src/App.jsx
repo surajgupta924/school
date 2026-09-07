@@ -7,6 +7,7 @@ import DashboardHome from './pages/DashboardHome';
 import AdminZoneDashboard from './pages/AdminZoneDashboard';
 import TeacherZoneDashboard from './pages/TeacherZoneDashboard';
 import StudentZoneDashboard from './pages/StudentZoneDashboard';
+import ParentZoneDashboard from './pages/ParentZoneDashboard';
 import AdminModulePage from './pages/AdminModulePage';
 import StudentsPage from './pages/StudentsPage';
 import TeachersPage from './pages/TeachersPage';
@@ -31,6 +32,7 @@ import { flattenAdminRoutes } from './config/adminNav';
 import { flattenTeacherRoutes } from './config/teacherNav';
 import { flattenAccountantRoutes } from './config/accountantNav';
 import { flattenStudentRoutes } from './config/studentNav';
+import { flattenParentRoutes } from './config/parentNav';
 import { selectUser } from './features/auth/authSlice';
 
 function HomeRouter() {
@@ -39,6 +41,7 @@ function HomeRouter() {
   if (user?.role === 'teacher') return <TeacherZoneDashboard />;
   if (user?.role === 'accountant') return <AccountantZoneDashboard />;
   if (user?.role === 'student') return <StudentZoneDashboard />;
+  if (user?.role === 'parent') return <ParentZoneDashboard />;
   return <DashboardHome />;
 }
 
@@ -46,6 +49,7 @@ const adminModuleRoutes = flattenAdminRoutes();
 const teacherModuleRoutes = flattenTeacherRoutes();
 const accountantModuleRoutes = flattenAccountantRoutes();
 const studentModuleRoutes = flattenStudentRoutes();
+const parentModuleRoutes = flattenParentRoutes();
 
 export default function App() {
   return (
@@ -79,6 +83,13 @@ export default function App() {
               .map((r) => (
                 <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
               ))}
+          </Route>
+
+          {/* Parent Zone module pages */}
+          <Route element={<ProtectedRoute roles={['parent', 'admin']} />}>
+            {parentModuleRoutes.map((r) => (
+              <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
+            ))}
           </Route>
 
           {/* Student Zone module pages */}

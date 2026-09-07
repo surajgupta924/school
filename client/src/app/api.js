@@ -474,6 +474,22 @@ export const api = createApi({
       transformResponse: (res) => res?.logs || [],
       providesTags: ['Audit'],
     }),
+
+    /* ─────────────── Parent portal ─────────────── */
+    getParentChildren: builder.query({
+      query: () => '/parent/children',
+      transformResponse: (res) => res?.children || [],
+      providesTags: ['Students'],
+    }),
+    getParentMessages: builder.query({
+      query: (params = {}) => ({ url: '/parent/messages', params }),
+      transformResponse: (res) => res?.messages || [],
+      providesTags: ['Inbox'],
+    }),
+    sendParentAlert: builder.mutation({
+      query: (body) => ({ url: '/parent/alert', method: 'POST', body }),
+      invalidatesTags: ['Inbox'],
+    }),
   }),
 });
 
@@ -555,4 +571,7 @@ export const {
   useGetSettingsQuery,
   useUpdateSettingsMutation,
   useGetAuditLogsQuery,
+  useGetParentChildrenQuery,
+  useGetParentMessagesQuery,
+  useSendParentAlertMutation,
 } = api;

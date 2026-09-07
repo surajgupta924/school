@@ -20,4 +20,10 @@ export const config = {
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM || 'XYZ Convent School <noreply@xyzconvent.local>',
   },
+  whatsapp: {
+    token: process.env.WHATSAPP_TOKEN || '',
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
+    callMeBotKey: process.env.WHATSAPP_CALLMEBOT_KEY || '',
+  },
+  isProd: process.env.NODE_ENV === 'production',
 };

@@ -4,7 +4,7 @@ import { FeePayment } from '../models/FeePayment.js';
 import { User } from '../models/User.js';
 import { protect, authorize, writeAudit } from '../middleware/auth.js';
 import { cacheDel } from '../services/redis.js';
-import { createInAppNotification, sendEmailNotification } from '../services/notify.js';
+import { notifyUser } from '../services/notify.js';
 
 const router = Router();
 
@@ -70,17 +70,13 @@ router.post('/', protect, authorize('admin', 'accountant'), async (req, res) => 
 
   const student = await User.findById(studentId);
   if (student) {
-    await createInAppNotification({
-      userId: student._id,
+    const msg = `${title}: ₹${amount} due on ${new Date(dueDate).toLocaleDateString('en-IN')}`;
+    await notifyUser(student, {
       title: 'New fee assigned',
-      message: `${title}: ₹${amount} due on ${new Date(dueDate).toLocaleDateString()}`,
+      message: msg,
       type: 'fee',
-    });
-
-    const emailResult = await sendEmailNotification({
-      to: student.email,
-      subject: `XYZ Convent School — Fee notice: ${title}`,
-      text: `Dear ${student.name},\n\nA fee of ₹${amount} (${title}) is due on ${new Date(dueDate).toLocaleDateString()}.\n\n— XYZ Convent School`,
+      email: true,
+      whatsapp: true,
     });
 
     const parents = await User.find({
@@ -88,20 +84,14 @@ router.post('/', protect, authorize('admin', 'accountant'), async (req, res) => 
       $or: [{ parentOf: student._id }, { studentIds: student._id }],
     });
     for (const parent of parents) {
-      await createInAppNotification({
-        userId: parent._id,
-        title: 'Fee notice',
-        message: `${student.name}: ${title} ₹${amount}`,
+      await notifyUser(parent, {
+        title: `Fee notice — ${student.name}`,
+        message: msg,
         type: 'fee',
-      });
-      await sendEmailNotification({
-        to: parent.email,
-        subject: `XYZ Convent School — Fee notice for ${student.name}`,
-        text: `${title}: ₹${amount} due on ${new Date(dueDate).toLocaleDateString()}.`,
+        email: true,
+        whatsapp: true,
       });
     }
-
-    fee._doc.emailPreviewUrl = emailResult.previewUrl;
   }
 
   await cacheDel('dashboard:stats:*');
@@ -145,12 +135,29 @@ router.patch('/:id/pay', protect, authorize('admin', 'accountant'), async (req, 
   }
   await fee.save();
 
-  await createInAppNotification({
-    userId: fee.studentId,
-    title: 'Fee payment recorded',
-    message: `${fee.title}: ₹${payAmount} paid. Receipt: ${rcp}`,
-    type: 'success',
-  });
+  const student = await User.findById(fee.studentId);
+  if (student) {
+    await notifyUser(student, {
+      title: 'Fee payment recorded',
+      message: `${fee.title}: ₹${payAmount} paid. Receipt: ${rcp}`,
+      type: 'success',
+      email: true,
+      whatsapp: true,
+    });
+    const parents = await User.find({
+      role: 'parent',
+      $or: [{ parentOf: student._id }, { studentIds: student._id }],
+    });
+    for (const parent of parents) {
+      await notifyUser(parent, {
+        title: `Payment received — ${student.name}`,
+        message: `${fee.title}: ₹${payAmount} paid. Receipt: ${rcp}`,
+        type: 'success',
+        email: true,
+        whatsapp: true,
+      });
+    }
+  }
 
   await cacheDel('dashboard:stats:*');
   await writeAudit({
@@ -168,28 +175,35 @@ router.patch('/:id/pay', protect, authorize('admin', 'accountant'), async (req, 
 
 router.post('/reminders', protect, authorize('admin', 'accountant'), async (req, res) => {
   const pending = await Fee.find({ status: { $in: ['pending', 'partial', 'overdue'] } }).populate(
-    'studentId',
-    'name email'
+    'studentId'
   );
 
   let sent = 0;
-  let previewUrl = null;
 
   for (const fee of pending) {
     if (!fee.studentId) continue;
-    await createInAppNotification({
-      userId: fee.studentId._id,
+    const due = `₹${fee.amount - (fee.amountPaid || 0)} outstanding (due ${new Date(fee.dueDate).toLocaleDateString('en-IN')})`;
+    await notifyUser(fee.studentId, {
       title: 'Fee reminder',
-      message: `${fee.title}: ₹${fee.amount - (fee.amountPaid || 0)} outstanding (due ${new Date(fee.dueDate).toLocaleDateString()})`,
+      message: `${fee.title}: ${due}`,
       type: 'fee',
+      email: true,
+      whatsapp: true,
     });
 
-    const result = await sendEmailNotification({
-      to: fee.studentId.email,
-      subject: `XYZ Convent School — Fee reminder: ${fee.title}`,
-      text: `Dear ${fee.studentId.name},\n\nThis is a reminder that ${fee.title} (₹${fee.amount}) is due on ${new Date(fee.dueDate).toLocaleDateString()}.\n\n— XYZ Convent School`,
+    const parents = await User.find({
+      role: 'parent',
+      $or: [{ parentOf: fee.studentId._id }, { studentIds: fee.studentId._id }],
     });
-    if (result.previewUrl) previewUrl = result.previewUrl;
+    for (const parent of parents) {
+      await notifyUser(parent, {
+        title: `Fee reminder — ${fee.studentId.name}`,
+        message: `${fee.title}: ${due}`,
+        type: 'fee',
+        email: true,
+        whatsapp: true,
+      });
+    }
     sent += 1;
   }
 
@@ -201,7 +215,7 @@ router.post('/reminders', protect, authorize('admin', 'accountant'), async (req,
     meta: { sent },
   });
 
-  res.json({ message: `Reminders sent for ${sent} fees`, sent, emailPreviewUrl: previewUrl });
+  res.json({ message: `Reminders sent for ${sent} fees (email + WhatsApp + inbox)`, sent });
 });
 
 export default router;

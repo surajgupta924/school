@@ -3,7 +3,7 @@ import { Attendance } from '../models/Attendance.js';
 import { User } from '../models/User.js';
 import { protect, authorize, writeAudit } from '../middleware/auth.js';
 import { cacheDel } from '../services/redis.js';
-import { createInAppNotification, sendEmailNotification } from '../services/notify.js';
+import { notifyUser } from '../services/notify.js';
 import { verifyAttendanceQR } from '../services/qr.js';
 
 const router = Router();
@@ -13,11 +13,12 @@ function todayISO() {
 }
 
 async function notifyAbsence(student, date) {
-  await createInAppNotification({
-    userId: student._id,
+  await notifyUser(student, {
     title: 'Absence marked',
     message: `You were marked absent on ${date}.`,
     type: 'attendance',
+    email: true,
+    whatsapp: true,
   });
 
   const parents = await User.find({
@@ -26,16 +27,12 @@ async function notifyAbsence(student, date) {
   });
 
   for (const parent of parents) {
-    await createInAppNotification({
-      userId: parent._id,
+    await notifyUser(parent, {
       title: 'Child absence',
-      message: `${student.name} was marked absent on ${date}.`,
+      message: `${student.name} was marked absent on ${date}. Please contact the school office if needed.`,
       type: 'attendance',
-    });
-    await sendEmailNotification({
-      to: parent.email,
-      subject: `XYZ Convent School — Absence alert for ${student.name}`,
-      text: `${student.name} was marked absent on ${date}. Please contact the school office if needed.`,
+      email: true,
+      whatsapp: true,
     });
   }
 }

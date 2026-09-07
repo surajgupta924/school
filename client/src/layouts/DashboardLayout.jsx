@@ -14,6 +14,7 @@ import { ADMIN_NAV, findAdminPageMeta } from '../config/adminNav';
 import { TEACHER_NAV, findTeacherPageMeta } from '../config/teacherNav';
 import { ACCOUNTANT_NAV, findAccountantPageMeta } from '../config/accountantNav';
 import { STUDENT_NAV, findStudentPageMeta } from '../config/studentNav';
+import { PARENT_NAV, findParentPageMeta } from '../config/parentNav';
 import { Avatar, timeAgo } from '../components/ui';
 import { IconBell, IconLogout, IconMenu } from '../components/Icons';
 
@@ -302,6 +303,7 @@ export default function DashboardLayout() {
   const isTeacher = user?.role === 'teacher';
   const isAccountant = user?.role === 'accountant';
   const isStudent = user?.role === 'student';
+  const isParent = user?.role === 'parent';
   const groups = useMemo(() => navForRole(user?.role), [user?.role]);
   const unread = inbox.filter((n) => !n.read).length;
 
@@ -319,22 +321,12 @@ export default function DashboardLayout() {
       const meta = findTeacherPageMeta(location.pathname);
       if (meta) return meta.label;
       if (location.pathname === '/') return 'Teacher Zone';
-      if (location.pathname === '/students') return 'Student List';
-      if (location.pathname === '/attendance') return 'Student Attendance';
-      if (location.pathname === '/homework') return 'Homework & Assignments';
-      if (location.pathname === '/exams') return 'Manage Offline Exams';
-      if (location.pathname === '/leaves') return 'Apply Leave';
-      if (location.pathname === '/attendance/scan') return 'Scan QR';
-      if (location.pathname === '/notices') return 'Notice Board';
     }
     if (isAccountant) {
       const meta = findAccountantPageMeta(location.pathname);
       if (meta) return meta.label;
       if (location.pathname === '/') return 'Accounts Zone';
       if (location.pathname === '/fees') return 'Collect Fees';
-      if (location.pathname === '/students') return 'Student List';
-      if (location.pathname === '/leaves') return 'Apply Leave';
-      if (location.pathname === '/notices') return 'Notice Board';
     }
     if (isStudent) {
       const meta = findStudentPageMeta(location.pathname);
@@ -347,12 +339,21 @@ export default function DashboardLayout() {
       if (location.pathname === '/notices') return 'Notice Board';
       if (location.pathname === '/transport/live') return 'Transport Tracking';
     }
+    if (isParent) {
+      const meta = findParentPageMeta(location.pathname);
+      if (meta) return meta.label;
+      if (location.pathname === '/') return 'Dashboard';
+      if (location.pathname === '/fees') return 'Fee Payments';
+      if (location.pathname === '/homework') return 'Homework';
+      if (location.pathname === '/notices') return 'Notice Board';
+      if (location.pathname === '/transport/live') return 'Transport Tracking';
+    }
     const flat = groups.flatMap((g) => g.items);
     const match =
       flat.find((i) => i.to !== '/' && location.pathname.startsWith(i.to)) ||
       flat.find((i) => i.to === location.pathname);
     return match?.label || 'Dashboard';
-  }, [groups, location.pathname, isAdmin, isTeacher, isAccountant, isStudent]);
+  }, [groups, location.pathname, isAdmin, isTeacher, isAccountant, isStudent, isParent]);
 
   async function handleLogout() {
     try {
@@ -365,7 +366,7 @@ export default function DashboardLayout() {
     navigate('/login', { replace: true });
   }
 
-  const zoneClass = isAdmin || isTeacher || isAccountant || isStudent ? ' admin-shell' : '';
+  const zoneClass = isAdmin || isTeacher || isAccountant || isStudent || isParent ? ' admin-shell' : '';
   const zoneTag = isAdmin
     ? 'Admin Zone'
     : isTeacher
@@ -374,7 +375,9 @@ export default function DashboardLayout() {
         ? 'Accounts Zone'
         : isStudent
           ? 'Student Portal'
-          : 'ERP Portal';
+          : isParent
+            ? 'Parent Portal'
+            : 'ERP Portal';
 
   return (
     <div className={`shell${zoneClass}`}>
@@ -395,6 +398,8 @@ export default function DashboardLayout() {
           <ZoneSidebar items={ACCOUNTANT_NAV} unread={unread} onLogout={handleLogout} showSearch />
         ) : isStudent ? (
           <ZoneSidebar items={STUDENT_NAV} unread={unread} onLogout={handleLogout} showSearch />
+        ) : isParent ? (
+          <ZoneSidebar items={PARENT_NAV} unread={unread} onLogout={handleLogout} showSearch />
         ) : (
           <SimpleSidebar groups={groups} unread={unread} />
         )}
