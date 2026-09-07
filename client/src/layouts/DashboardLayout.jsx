@@ -13,6 +13,7 @@ import { navForRole, ROLE_LABELS } from '../config/nav';
 import { ADMIN_NAV, findAdminPageMeta } from '../config/adminNav';
 import { TEACHER_NAV, findTeacherPageMeta } from '../config/teacherNav';
 import { ACCOUNTANT_NAV, findAccountantPageMeta } from '../config/accountantNav';
+import { STUDENT_NAV, findStudentPageMeta } from '../config/studentNav';
 import { Avatar, timeAgo } from '../components/ui';
 import { IconBell, IconLogout, IconMenu } from '../components/Icons';
 
@@ -53,6 +54,13 @@ const ICON_MAP = {
   logout: '⎋',
   rupee: '₹',
   search: '⌕',
+  sms: '💬',
+  wa: '🟢',
+  mail: '✉',
+  health: '❤',
+  folder: '📁',
+  image: '🖼',
+  bot: '🤖',
 };
 
 function useClickOutside(onOutside) {
@@ -293,6 +301,7 @@ export default function DashboardLayout() {
   const isAdmin = user?.role === 'admin';
   const isTeacher = user?.role === 'teacher';
   const isAccountant = user?.role === 'accountant';
+  const isStudent = user?.role === 'student';
   const groups = useMemo(() => navForRole(user?.role), [user?.role]);
   const unread = inbox.filter((n) => !n.read).length;
 
@@ -327,12 +336,23 @@ export default function DashboardLayout() {
       if (location.pathname === '/leaves') return 'Apply Leave';
       if (location.pathname === '/notices') return 'Notice Board';
     }
+    if (isStudent) {
+      const meta = findStudentPageMeta(location.pathname);
+      if (meta) return meta.label;
+      if (location.pathname === '/') return 'Dashboard';
+      if (location.pathname === '/fees') return 'Fee Payments';
+      if (location.pathname === '/attendance') return 'Attendance';
+      if (location.pathname === '/homework') return 'Homework';
+      if (location.pathname === '/exams') return 'Exams & Reports';
+      if (location.pathname === '/notices') return 'Notice Board';
+      if (location.pathname === '/transport/live') return 'Transport Tracking';
+    }
     const flat = groups.flatMap((g) => g.items);
     const match =
       flat.find((i) => i.to !== '/' && location.pathname.startsWith(i.to)) ||
       flat.find((i) => i.to === location.pathname);
     return match?.label || 'Dashboard';
-  }, [groups, location.pathname, isAdmin, isTeacher, isAccountant]);
+  }, [groups, location.pathname, isAdmin, isTeacher, isAccountant, isStudent]);
 
   async function handleLogout() {
     try {
@@ -345,7 +365,16 @@ export default function DashboardLayout() {
     navigate('/login', { replace: true });
   }
 
-  const zoneClass = isAdmin || isTeacher || isAccountant ? ' admin-shell' : '';
+  const zoneClass = isAdmin || isTeacher || isAccountant || isStudent ? ' admin-shell' : '';
+  const zoneTag = isAdmin
+    ? 'Admin Zone'
+    : isTeacher
+      ? 'Teacher Zone'
+      : isAccountant
+        ? 'Accounts Zone'
+        : isStudent
+          ? 'Student Portal'
+          : 'ERP Portal';
 
   return (
     <div className={`shell${zoneClass}`}>
@@ -354,9 +383,7 @@ export default function DashboardLayout() {
           <div className="brand-mark">XC</div>
           <div style={{ minWidth: 0 }}>
             <div className="brand-name">{schoolName || 'XYZ Convent School'}</div>
-            <div className="brand-tag">
-              {isAdmin ? 'Admin Zone' : isTeacher ? 'Teacher Zone' : isAccountant ? 'Accounts Zone' : 'ERP Portal'}
-            </div>
+            <div className="brand-tag">{zoneTag}</div>
           </div>
         </div>
 
@@ -366,6 +393,8 @@ export default function DashboardLayout() {
           <ZoneSidebar items={TEACHER_NAV} unread={unread} onLogout={handleLogout} showSearch />
         ) : isAccountant ? (
           <ZoneSidebar items={ACCOUNTANT_NAV} unread={unread} onLogout={handleLogout} showSearch />
+        ) : isStudent ? (
+          <ZoneSidebar items={STUDENT_NAV} unread={unread} onLogout={handleLogout} showSearch />
         ) : (
           <SimpleSidebar groups={groups} unread={unread} />
         )}

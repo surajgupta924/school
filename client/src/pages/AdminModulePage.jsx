@@ -3,13 +3,15 @@ import { useLocation } from 'react-router-dom';
 import { findAdminPageMeta } from '../config/adminNav';
 import { findTeacherPageMeta } from '../config/teacherNav';
 import { findAccountantPageMeta } from '../config/accountantNav';
+import { findStudentPageMeta } from '../config/studentNav';
 import { getModuleConfig } from '../config/moduleDefs';
 
 function findPageMeta(pathname) {
   return (
     findAdminPageMeta(pathname) ||
     findTeacherPageMeta(pathname) ||
-    findAccountantPageMeta(pathname) || { label: 'Module', parent: 'Workspace' }
+    findAccountantPageMeta(pathname) ||
+    findStudentPageMeta(pathname) || { label: 'Module', parent: 'Workspace' }
   );
 }
 

@@ -6,7 +6,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
 import AdminZoneDashboard from './pages/AdminZoneDashboard';
 import TeacherZoneDashboard from './pages/TeacherZoneDashboard';
-import AccountantZoneDashboard from './pages/AccountantZoneDashboard';
+import StudentZoneDashboard from './pages/StudentZoneDashboard';
 import AdminModulePage from './pages/AdminModulePage';
 import StudentsPage from './pages/StudentsPage';
 import TeachersPage from './pages/TeachersPage';
@@ -30,6 +30,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import { flattenAdminRoutes } from './config/adminNav';
 import { flattenTeacherRoutes } from './config/teacherNav';
 import { flattenAccountantRoutes } from './config/accountantNav';
+import { flattenStudentRoutes } from './config/studentNav';
 import { selectUser } from './features/auth/authSlice';
 
 function HomeRouter() {
@@ -37,12 +38,14 @@ function HomeRouter() {
   if (user?.role === 'admin') return <AdminZoneDashboard />;
   if (user?.role === 'teacher') return <TeacherZoneDashboard />;
   if (user?.role === 'accountant') return <AccountantZoneDashboard />;
+  if (user?.role === 'student') return <StudentZoneDashboard />;
   return <DashboardHome />;
 }
 
 const adminModuleRoutes = flattenAdminRoutes();
 const teacherModuleRoutes = flattenTeacherRoutes();
 const accountantModuleRoutes = flattenAccountantRoutes();
+const studentModuleRoutes = flattenStudentRoutes();
 
 export default function App() {
   return (
@@ -76,6 +79,13 @@ export default function App() {
               .map((r) => (
                 <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
               ))}
+          </Route>
+
+          {/* Student Zone module pages */}
+          <Route element={<ProtectedRoute roles={['student', 'admin']} />}>
+            {studentModuleRoutes.map((r) => (
+              <Route key={r.path} path={r.path.replace(/^\//, '')} element={<AdminModulePage />} />
+            ))}
           </Route>
 
           {/* Accountant Zone module pages */}
@@ -125,7 +135,7 @@ export default function App() {
             <Route path="transport" element={<TransportPage />} />
           </Route>
 
-          <Route element={<ProtectedRoute roles={['admin', 'accountant', 'parent']} />}>
+          <Route element={<ProtectedRoute roles={['admin', 'accountant', 'parent', 'student']} />}>
             <Route path="transport/live" element={<LiveTrackPage />} />
           </Route>
 
