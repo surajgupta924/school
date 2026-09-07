@@ -1,7 +1,12 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { findAdminPageMeta } from '../config/adminNav';
+import { findTeacherPageMeta } from '../config/teacherNav';
 import { getModuleConfig } from '../config/moduleDefs';
+
+function findPageMeta(pathname) {
+  return findAdminPageMeta(pathname) || findTeacherPageMeta(pathname) || { label: 'Module', parent: 'Workspace' };
+}
 
 const STORAGE_KEY = 'xyz_admin_module_data';
 
@@ -23,7 +28,7 @@ function uid() {
 
 export default function AdminModulePage() {
   const location = useLocation();
-  const meta = findAdminPageMeta(location.pathname) || { label: 'Module', parent: 'Admin Zone' };
+  const meta = findPageMeta(location.pathname);
   const config = getModuleConfig(location.pathname, meta);
 
   const [rows, setRows] = useState([]);

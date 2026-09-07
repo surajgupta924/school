@@ -2292,3 +2292,148 @@ table.table td.strong,
     display: none !important;
   }
 }
+
+/* Teacher Zone */
+.nav-search-wrap {
+  padding: 8px 10px 12px;
+}
+
+.nav-search {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.nav-search::placeholder {
+  color: #8b93a3;
+}
+
+.nav-logout {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: #ffb4a8 !important;
+  font: inherit;
+  text-align: left;
+}
+
+.nav-logout:hover {
+  background: rgba(200, 68, 47, 0.18) !important;
+}
+
+.tz-stat-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+
+.tz-stat {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  color: #fff;
+  background: var(--c, #334155);
+  min-height: 78px;
+}
+
+.tz-stat span {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+.tz-stat strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 24px;
+  font-family: var(--font-display);
+}
+
+.tz-mid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr 0.9fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.tz-profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tz-profile-top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.tz-payslip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.tz-bottom {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+
+.tz-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tz-schedule {
+  background: linear-gradient(160deg, #0f766e, #115e59) !important;
+  border: none !important;
+  color: #fff;
+}
+
+.tz-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+}
+
+.tz-slot span {
+  opacity: 0.85;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .tz-stat-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .tz-mid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .tz-stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tz-mid,
+  .tz-bottom {
+    grid-template-columns: 1fr;
+  }
+}

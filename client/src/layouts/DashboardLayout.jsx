@@ -11,8 +11,9 @@ import { disconnectSocket } from '../app/socket';
 import { logout, selectSchoolName, selectUser } from '../features/auth/authSlice';
 import { navForRole, ROLE_LABELS } from '../config/nav';
 import { ADMIN_NAV, findAdminPageMeta } from '../config/adminNav';
+import { TEACHER_NAV, findTeacherPageMeta } from '../config/teacherNav';
 import { Avatar, timeAgo } from '../components/ui';
-import { IconBell, IconLogout, IconMenu, IconUser } from '../components/Icons';
+import { IconBell, IconLogout, IconMenu } from '../components/Icons';
 
 const ICON_MAP = {
   grid: '▦',
@@ -42,6 +43,13 @@ const ICON_MAP = {
   chart: '◔',
   gears: '⚙',
   apps: '⊞',
+  user: '👤',
+  calendar: '📅',
+  list: '☰',
+  print: '🖨',
+  upload: '⬆',
+  video: '📹',
+  logout: '⎋',
 };
 
 function useClickOutside(onOutside) {
@@ -131,19 +139,36 @@ function UserMenu({ user, onLogout }) {
   );
 }
 
-function AdminSidebar({ unread }) {
+function ZoneSidebar({ items, unread, onLogout, showSearch }) {
   const location = useLocation();
-  const [openIds, setOpenIds] = useState(() => {
-    const active = ADMIN_NAV.find((n) => n.children?.some((c) => location.pathname === c.to || location.pathname.startsWith(c.to + '/')));
-    return active ? { [active.id]: true } : { finance: true };
-  });
+  const [menuQuery, setMenuQuery] = useState('');
+  const [openIds, setOpenIds] = useState({});
 
   useEffect(() => {
-    const active = ADMIN_NAV.find((n) =>
+    const active = items.find((n) =>
       n.children?.some((c) => location.pathname === c.to || (c.to !== '/' && location.pathname.startsWith(c.to)))
     );
     if (active) setOpenIds((prev) => ({ ...prev, [active.id]: true }));
-  }, [location.pathname]);
+  }, [location.pathname, items]);
+
+  const filtered = useMemo(() => {
+    const q = menuQuery.trim().toLowerCase();
+    if (!q) return items;
+    return items
+      .map((item) => {
+        if (item.type === 'section') return item;
+        if (item.children) {
+          const children = item.children.filter((c) => c.label.toLowerCase().includes(q));
+          if (item.label.toLowerCase().includes(q) || children.length) {
+            return { ...item, children: children.length ? children : item.children };
+          }
+          return null;
+        }
+        if (item.label?.toLowerCase().includes(q)) return item;
+        return null;
+      })
+      .filter(Boolean);
+  }, [items, menuQuery]);
 
   function toggle(id) {
     setOpenIds((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -151,19 +176,39 @@ function AdminSidebar({ unread }) {
 
   return (
     <nav className="nav admin-nav">
-      {ADMIN_NAV.map((item, idx) => {
+      {showSearch ? (
+        <div className="nav-search-wrap">
+          <input
+            className="nav-search"
+            placeholder="Search Menu…"
+            value={menuQuery}
+            onChange={(e) => setMenuQuery(e.target.value)}
+          />
+        </div>
+      ) : null}
+
+      {filtered.map((item, idx) => {
         if (item.type === 'section') {
           return (
-            <div key={`sec-${idx}`} className="nav-section-label">
+            <div key={`sec-${idx}-${item.label}`} className="nav-section-label">
               {item.label}
             </div>
+          );
+        }
+
+        if (item.action === 'logout') {
+          return (
+            <button key={item.id} type="button" className="nav-item nav-logout" onClick={onLogout}>
+              <span className="nav-ico">{ICON_MAP[item.icon] || '•'}</span>
+              <span>{item.label}</span>
+            </button>
           );
         }
 
         if (!item.children) {
           return (
             <NavLink
-              key={item.id}
+              key={item.id || item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
@@ -174,7 +219,7 @@ function AdminSidebar({ unread }) {
           );
         }
 
-        const expanded = !!openIds[item.id];
+        const expanded = menuQuery ? true : !!openIds[item.id];
         const childActive = item.children.some(
           (c) => location.pathname === c.to || (c.to.length > 1 && location.pathname.startsWith(c.to))
         );
@@ -243,6 +288,7 @@ export default function DashboardLayout() {
   const { data: inbox = [] } = useGetInboxQuery(undefined, { pollingInterval: 60000 });
 
   const isAdmin = user?.role === 'admin';
+  const isTeacher = user?.role === 'teacher';
   const groups = useMemo(() => navForRole(user?.role), [user?.role]);
   const unread = inbox.filter((n) => !n.read).length;
 
@@ -256,12 +302,24 @@ export default function DashboardLayout() {
       if (meta) return meta.label;
       if (location.pathname === '/') return 'Admin Zone';
     }
+    if (isTeacher) {
+      const meta = findTeacherPageMeta(location.pathname);
+      if (meta) return meta.label;
+      if (location.pathname === '/') return 'Teacher Zone';
+      if (location.pathname === '/students') return 'Student List';
+      if (location.pathname === '/attendance') return 'Student Attendance';
+      if (location.pathname === '/homework') return 'Homework & Assignments';
+      if (location.pathname === '/exams') return 'Manage Offline Exams';
+      if (location.pathname === '/leaves') return 'Apply Leave';
+      if (location.pathname === '/attendance/scan') return 'Scan QR';
+      if (location.pathname === '/notices') return 'Notice Board';
+    }
     const flat = groups.flatMap((g) => g.items);
     const match =
       flat.find((i) => i.to !== '/' && location.pathname.startsWith(i.to)) ||
       flat.find((i) => i.to === location.pathname);
     return match?.label || 'Dashboard';
-  }, [groups, location.pathname, isAdmin]);
+  }, [groups, location.pathname, isAdmin, isTeacher]);
 
   async function handleLogout() {
     try {
@@ -274,18 +332,28 @@ export default function DashboardLayout() {
     navigate('/login', { replace: true });
   }
 
+  const zoneClass = isAdmin || isTeacher ? ' admin-shell' : '';
+
   return (
-    <div className={`shell${isAdmin ? ' admin-shell' : ''}`}>
+    <div className={`shell${zoneClass}`}>
       <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="sidebar-brand">
           <div className="brand-mark">XC</div>
           <div style={{ minWidth: 0 }}>
             <div className="brand-name">{schoolName || 'XYZ Convent School'}</div>
-            <div className="brand-tag">{isAdmin ? 'Admin Zone' : 'ERP Portal'}</div>
+            <div className="brand-tag">
+              {isAdmin ? 'Admin Zone' : isTeacher ? 'Teacher Zone' : 'ERP Portal'}
+            </div>
           </div>
         </div>
 
-        {isAdmin ? <AdminSidebar unread={unread} /> : <SimpleSidebar groups={groups} unread={unread} />}
+        {isAdmin ? (
+          <ZoneSidebar items={ADMIN_NAV} unread={unread} onLogout={handleLogout} />
+        ) : isTeacher ? (
+          <ZoneSidebar items={TEACHER_NAV} unread={unread} onLogout={handleLogout} showSearch />
+        ) : (
+          <SimpleSidebar groups={groups} unread={unread} />
+        )}
 
         <div className="sidebar-foot">
           {ROLE_LABELS[user?.role] || user?.role} · v2.0

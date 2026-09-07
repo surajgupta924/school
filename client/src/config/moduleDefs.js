@@ -153,6 +153,72 @@ const PRESETS = {
       status: 'Enabled',
     })),
   },
+  '/teacher/profile': {
+    entity: 'Profile field',
+    description: 'Your teacher profile details used across the school ERP.',
+    columns: [
+      { key: 'field', label: 'Field' },
+      { key: 'value', label: 'Value' },
+      { key: 'status', label: 'Status', type: 'badge' },
+    ],
+    fields: [
+      { key: 'field', label: 'Field' },
+      { key: 'value', label: 'Value' },
+      { key: 'status', label: 'Status', type: 'select', options: ['active', 'pending'], defaultValue: 'active' },
+    ],
+    seed: [
+      { id: 's1', field: 'Full name', value: 'Priya Sharma', status: 'active' },
+      { id: 's2', field: 'Subject', value: 'Mathematics', status: 'active' },
+      { id: 's3', field: 'Employee ID', value: 'TCH-1001', status: 'active' },
+      { id: 's4', field: 'Phone', value: '9000000002', status: 'active' },
+    ],
+  },
+  '/teacher/timetable': {
+    entity: 'Period',
+    description: 'Your weekly class timetable.',
+    columns: [
+      { key: 'day', label: 'Day' },
+      { key: 'time', label: 'Time' },
+      { key: 'subject', label: 'Subject' },
+      { key: 'className', label: 'Class' },
+      { key: 'status', label: 'Status', type: 'badge' },
+    ],
+    fields: [
+      { key: 'day', label: 'Day', type: 'select', options: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] },
+      { key: 'time', label: 'Time' },
+      { key: 'subject', label: 'Subject' },
+      { key: 'className', label: 'Class' },
+      { key: 'status', label: 'Status', type: 'select', options: ['scheduled', 'cancelled'], defaultValue: 'scheduled' },
+    ],
+    seed: seed(5, (i) => ({
+      day: ['Monday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'][i - 1],
+      time: ['10:00 AM', '11:00 AM', '12:20 PM', '10:00 AM', '02:20 PM'][i - 1],
+      subject: 'Mathematics',
+      className: ['10-A', '8-B', '9-A', '10-A', '7-C'][i - 1],
+      status: 'scheduled',
+    })),
+  },
+  '/teacher/apps': {
+    kind: 'dashboard',
+    title: 'Teacher Apps Center',
+    description: 'Quick launch for teacher tools.',
+    cards: [
+      { title: 'Attendance', value: 'Open', emoji: '📋', tint: '#e8f7ef' },
+      { title: 'Homework', value: 'Open', emoji: '📝', tint: '#e8f0f9' },
+      { title: 'Marks', value: 'Open', emoji: '✏️', tint: '#fdf1e7' },
+      { title: 'Live Class', value: 'Open', emoji: '📹', tint: '#efeaf9' },
+    ],
+    columns: [
+      { key: 'app', label: 'App' },
+      { key: 'category', label: 'Category' },
+      { key: 'status', label: 'Status' },
+    ],
+    seed: seed(4, (i) => ({
+      app: ['QR Attendance', 'Homework', 'Enter Marks', 'Lesson Planner'][i - 1],
+      category: 'Teaching',
+      status: 'Enabled',
+    })),
+  },
 };
 
 function guessEntity(label) {
