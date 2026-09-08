@@ -33,6 +33,14 @@ import {
   GenerateDueSlipPage,
   SearchDueFeesPage,
 } from './pages/fees/FeeOpsPages';
+import AccountsDashboardPage from './pages/accounts/AccountsDashboardPage';
+import { IncomePage, ExpensePage } from './pages/accounts/AccountEntriesPages';
+import { IncomeHeadsPage, ExpenseHeadsPage } from './pages/accounts/AccountHeadsPages';
+import BankAccountsPage from './pages/accounts/BankAccountsPage';
+import EventsPage from './pages/EventsPage';
+import VisitorsPage from './pages/VisitorsPage';
+import AuditLogsPage from './pages/AuditLogsPage';
+import StudentAdmissionPage from './pages/StudentAdmissionPage';
 import TransportPage from './pages/TransportPage';
 import LiveTrackPage from './pages/LiveTrackPage';
 import DriverConsolePage from './pages/DriverConsolePage';
@@ -101,6 +109,20 @@ export default function App() {
             <Route path="admin/fees/types" element={<FeeTypesPage />} />
             <Route path="admin/fees/due-slip" element={<GenerateDueSlipPage />} />
             <Route path="admin/fees/due-slip-history" element={<DueSlipHistoryPage />} />
+            <Route path="admin/accounts/dashboard" element={<AccountsDashboardPage />} />
+            <Route path="admin/accounts/income" element={<IncomePage />} />
+            <Route path="admin/accounts/expenses" element={<ExpensePage />} />
+            <Route path="admin/accounts/income-heads" element={<IncomeHeadsPage />} />
+            <Route path="admin/accounts/expense-heads" element={<ExpenseHeadsPage />} />
+            <Route path="admin/accounts/banks" element={<BankAccountsPage />} />
+            <Route path="admin/students/admission" element={<StudentAdmissionPage />} />
+            <Route path="admin/students/attendance" element={<AttendancePage />} />
+            <Route path="admin/communicate/events" element={<EventsPage />} />
+            <Route path="admin/front-office/visitors" element={<VisitorsPage />} />
+            <Route path="admin/system/audit" element={<AuditLogsPage />} />
+            <Route path="admin/transport/dashboard" element={<TransportPage />} />
+            <Route path="admin/transport/vehicles" element={<TransportPage />} />
+            <Route path="admin/transport/routes" element={<TransportPage />} />
             <Route path="admin/hr/staff" element={<StaffPage />} />
             <Route path="admin/exams/offline/manage" element={<ExamsPage />} />
             {adminModuleRoutes
@@ -108,6 +130,8 @@ export default function App() {
                 (r) =>
                   ![
                     '/admin/students/list',
+                    '/admin/students/admission',
+                    '/admin/students/attendance',
                     '/admin/academics/classes',
                     '/admin/fees/dashboard',
                     '/admin/fees/collect',
@@ -122,6 +146,18 @@ export default function App() {
                     '/admin/fees/types',
                     '/admin/fees/due-slip',
                     '/admin/fees/due-slip-history',
+                    '/admin/accounts/dashboard',
+                    '/admin/accounts/income',
+                    '/admin/accounts/expenses',
+                    '/admin/accounts/income-heads',
+                    '/admin/accounts/expense-heads',
+                    '/admin/accounts/banks',
+                    '/admin/communicate/events',
+                    '/admin/front-office/visitors',
+                    '/admin/system/audit',
+                    '/admin/transport/dashboard',
+                    '/admin/transport/vehicles',
+                    '/admin/transport/routes',
                     '/admin/hr/staff',
                     '/admin/exams/offline/manage',
                   ].includes(r.path)
@@ -157,6 +193,13 @@ export default function App() {
             <Route path="accountant/fees/transactions" element={<FeeTransactionsPage />} />
             <Route path="accountant/fees/challans" element={<FeeChallansPage />} />
             <Route path="accountant/fees/discounts" element={<FeeDiscountsPage />} />
+            <Route path="accountant/accounts/dashboard" element={<AccountsDashboardPage />} />
+            <Route path="accountant/accounts/income" element={<IncomePage />} />
+            <Route path="accountant/accounts/expenses" element={<ExpensePage />} />
+            <Route path="accountant/accounts/expense" element={<ExpensePage />} />
+            <Route path="accountant/accounts/income-heads" element={<IncomeHeadsPage />} />
+            <Route path="accountant/accounts/expense-heads" element={<ExpenseHeadsPage />} />
+            <Route path="accountant/accounts/banks" element={<BankAccountsPage />} />
             {accountantModuleRoutes
               .filter(
                 (r) =>
@@ -170,6 +213,13 @@ export default function App() {
                     '/accountant/fees/transactions',
                     '/accountant/fees/challans',
                     '/accountant/fees/discounts',
+                    '/accountant/accounts/dashboard',
+                    '/accountant/accounts/income',
+                    '/accountant/accounts/expenses',
+                    '/accountant/accounts/expense',
+                    '/accountant/accounts/income-heads',
+                    '/accountant/accounts/expense-heads',
+                    '/accountant/accounts/banks',
                   ].includes(r.path)
               )
               .map((r) => (

@@ -14,6 +14,8 @@ import { connectRedis } from './services/redis.js';
 import { initSocket } from './services/socket.js';
 import { seedIfEmpty } from './utils/seedData.js';
 import { seedFinanceIfNeeded } from './utils/seedFinance.js';
+import { seedAccountsIfNeeded } from './utils/seedAccounts.js';
+import { seedOfficeIfNeeded } from './utils/seedOffice.js';
 
 import authRoutes from './routes/auth.js';
 import studentsRoutes from './routes/students.js';
@@ -24,6 +26,8 @@ import attendanceRoutes from './routes/attendance.js';
 import idcardRoutes from './routes/idcard.js';
 import feeRoutes from './routes/fees.js';
 import financeRoutes from './routes/finance.js';
+import accountsRoutes from './routes/accounts.js';
+import officeRoutes from './routes/office.js';
 import transportRoutes from './routes/transport.js';
 import examsRoutes from './routes/exams.js';
 import homeworkRoutes from './routes/homework.js';
@@ -110,6 +114,8 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/idcard', idcardRoutes);
 app.use('/api/fees', feeRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/accounts', accountsRoutes);
+app.use('/api/office', officeRoutes);
 app.use('/api/transport', transportRoutes);
 app.use('/api/exams', examsRoutes);
 app.use('/api/homework', homeworkRoutes);
@@ -133,6 +139,8 @@ async function start() {
   initSocket(server);
   await seedIfEmpty();
   await seedFinanceIfNeeded();
+  await seedAccountsIfNeeded();
+  await seedOfficeIfNeeded();
   server.listen(config.port, () => {
     console.log(`${config.schoolName} API running on http://localhost:${config.port}`);
   });

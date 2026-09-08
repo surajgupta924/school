@@ -6,6 +6,7 @@ const classSectionSchema = new mongoose.Schema(
     section: { type: String, required: true, trim: true },
     classTeacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     academicYear: { type: String, required: true, default: '2025-26' },
+    capacity: { type: Number, default: 40, min: 1 },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

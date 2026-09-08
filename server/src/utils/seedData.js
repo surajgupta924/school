@@ -76,6 +76,9 @@ export async function seedIfEmpty() {
     address: 'Najafgarh, New Delhi',
   });
 
+  const todayDob = new Date();
+  todayDob.setHours(12, 0, 0, 0);
+
   const student = await User.create({
     name: 'Aarav Patel',
     email: 'student@xyzconvent.edu',
@@ -99,7 +102,7 @@ export async function seedIfEmpty() {
     className: '10',
     section: 'A',
     bloodGroup: 'A+',
-    dob: new Date('2010-08-21'),
+    dob: todayDob,
   });
 
   const student3 = await User.create({
@@ -130,12 +133,14 @@ export async function seedIfEmpty() {
       section: 'A',
       classTeacher: teacher._id,
       academicYear: '2025-26',
+      capacity: 45,
     },
     {
       name: '9',
       section: 'B',
       classTeacher: teacher2._id,
       academicYear: '2025-26',
+      capacity: 40,
     },
   ]);
 

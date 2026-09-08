@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   useAssignFeeGroupMutation,
@@ -22,12 +22,29 @@ import {
   useGetStudentOptionsQuery,
   useUpdateFeeChallanStatusMutation,
   useUpdateFeeDiscountMutation,
+  useUpdateFeeGroupMutation,
   useUpdateFeeTypeMutation,
 } from '../../app/api';
 import { Card, EmptyState, ErrorState, Input, Loading, Modal, errorText, useToast } from '../../components/ui';
 import { FeesModuleShell, feesBase, money } from './FeesModuleShell';
 import { useSelector } from 'react-redux';
 import { selectRole } from '../../features/auth/authSlice';
+
+function itemKey(item, idx) {
+  return String(item._id || item.id || idx);
+}
+
+function emptyGroupItem() {
+  return {
+    feeTypeId: '',
+    name: '',
+    amount: '',
+    dueDate: new Date().toISOString().slice(0, 10),
+    demandDate: new Date().toISOString().slice(0, 10),
+    fineType: 'none',
+    fineAmount: '',
+  };
+}
 
 function Pager({ page, pages, setPage }) {
   if (pages <= 1) return null;
@@ -337,12 +354,45 @@ export function AssignFeesPage() {
   const [className, setClassName] = useState('10');
   const [section, setSection] = useState('A');
   const [feeGroupId, setFeeGroupId] = useState('');
+  const [selectedItemIds, setSelectedItemIds] = useState(() => new Set());
   const [demandDate, setDemandDate] = useState(new Date().toISOString().slice(0, 10));
   const [mode, setMode] = useState('assign');
   const [selected, setSelected] = useState(() => new Set());
   const { data: groups = [] } = useGetFeeGroupsQuery();
   const { data: students = [], refetch } = useGetStudentOptionsQuery({ className, section });
   const [assign, { isLoading }] = useAssignFeeGroupMutation();
+
+  const selectedGroup = useMemo(
+    () => groups.find((g) => String(g._id || g.id) === String(feeGroupId)),
+    [groups, feeGroupId]
+  );
+  const groupItems = selectedGroup?.items || [];
+
+  useEffect(() => {
+    if (!feeGroupId) {
+      setSelectedItemIds(new Set());
+      return;
+    }
+    const group = groups.find((g) => String(g._id || g.id) === String(feeGroupId));
+    setSelectedItemIds(new Set((group?.items || []).map((item, idx) => itemKey(item, idx))));
+  }, [feeGroupId]); // eslint-disable-line react-hooks/exhaustive-deps -- only reset when group selection changes
+
+  function toggleItem(key) {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function toggleAllItems(checked) {
+    if (!checked) {
+      setSelectedItemIds(new Set());
+      return;
+    }
+    setSelectedItemIds(new Set(groupItems.map((item, idx) => itemKey(item, idx))));
+  }
 
   async function retrieve(e) {
     e.preventDefault();
@@ -355,12 +405,22 @@ export function AssignFeesPage() {
       toast.error('Select fee group and students');
       return;
     }
+    if (!selectedItemIds.size) {
+      toast.error('Select at least one fee type from the group');
+      return;
+    }
+    const itemIds = groupItems
+      .map((item, idx) => ({ item, key: itemKey(item, idx) }))
+      .filter(({ key }) => selectedItemIds.has(key))
+      .map(({ item }) => item._id || item.id)
+      .filter(Boolean);
     try {
       const res = await assign({
         feeGroupId,
         studentIds: [...selected],
         demandDate,
         mode,
+        itemIds: itemIds.length ? itemIds : undefined,
       }).unwrap();
       toast.success(res.message || 'Done');
       setSelected(new Set());
@@ -368,6 +428,11 @@ export function AssignFeesPage() {
       toast.error(errorText(err));
     }
   }
+
+  const allItemsChecked = groupItems.length > 0 && selectedItemIds.size === groupItems.length;
+  const selectedTotal = groupItems
+    .filter((item, idx) => selectedItemIds.has(itemKey(item, idx)))
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
   return (
     <FeesModuleShell>
@@ -391,11 +456,61 @@ export function AssignFeesPage() {
           <button type="button" className={`btn ${mode === 'unassign' ? 'btn-danger' : 'btn-secondary'}`} onClick={() => setMode('unassign')}>Unassign Mode</button>
           <select className="select" required value={feeGroupId} onChange={(e) => setFeeGroupId(e.target.value)}>
             <option value="">Select Fee Group *</option>
-            {groups.map((g) => <option key={g._id || g.id} value={g._id || g.id}>{g.name}</option>)}
+            {groups.map((g) => (
+              <option key={g._id || g.id} value={g._id || g.id}>
+                {g.name} (Total: {money(g.totalAmount)})
+              </option>
+            ))}
           </select>
           <input className="input" type="date" value={demandDate} onChange={(e) => setDemandDate(e.target.value)} />
         </div>
-        <p className="t-muted" style={{ fontSize: 12, marginTop: 8 }}>If demand date is in the future, parents will not see the fee until that date.</p>
+        <p className="t-muted" style={{ fontSize: 12, marginTop: 8 }}>
+          Demand date (show to parents on). If set into the future, parents will not see this fee until this exact date arrives.
+        </p>
+
+        {feeGroupId ? (
+          <div className="fees-assign-types">
+            <div className="fees-assign-types-head">
+              <strong>Fee Types in Group</strong>
+              <span className="t-muted">Select multiple types to {mode === 'assign' ? 'assign' : 'unassign'}</span>
+              <label className="fees-assign-check-all">
+                <input type="checkbox" checked={allItemsChecked} onChange={(e) => toggleAllItems(e.target.checked)} />
+                Select all
+              </label>
+            </div>
+            {groupItems.length === 0 ? (
+              <p className="t-muted" style={{ margin: 0 }}>This fee group has no fee types yet.</p>
+            ) : (
+              <div className="fees-assign-types-list">
+                {groupItems.map((item, idx) => {
+                  const key = itemKey(item, idx);
+                  return (
+                    <label key={key} className={`fees-assign-type ${selectedItemIds.has(key) ? 'is-selected' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedItemIds.has(key)}
+                        onChange={() => toggleItem(key)}
+                      />
+                      <span className="fees-assign-type-body">
+                        <span className="fees-assign-type-name">{item.name}</span>
+                        <span className="fees-assign-type-meta t-muted">
+                          Amount: {money(item.amount)}
+                          {item.dueDate ? ` · Due: ${new Date(item.dueDate).toLocaleDateString('en-IN')}` : ''}
+                          {item.demandDate ? ` · Demand: ${new Date(item.demandDate).toLocaleDateString('en-IN')}` : ''}
+                          {item.fineType && item.fineType !== 'none' ? ` · Fine: ${item.fineType}` : ' · Fine: None'}
+                        </span>
+                      </span>
+                      <span className="t-strong fees-assign-type-amt">{money(item.amount)}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <div className="fees-assign-types-foot">
+              Selected {selectedItemIds.size} of {groupItems.length} type(s) · Subtotal {money(selectedTotal)}
+            </div>
+          </div>
+        ) : null}
       </Card>
 
       <Card tight>
@@ -445,32 +560,104 @@ export function AssignFeesPage() {
 export function FeeGroupsPage() {
   const toast = useToast();
   const { data: groups = [], isLoading, error, refetch } = useGetFeeGroupsQuery();
+  const { data: typesData } = useGetFeeTypesQuery({ page: 1, limit: 100 });
+  const feeTypes = typesData?.types || [];
   const [createGroup] = useCreateFeeGroupMutation();
+  const [updateGroup] = useUpdateFeeGroupMutation();
   const [cloneGroup] = useCloneFeeGroupMutation();
   const [remove] = useDeleteFeeGroupMutation();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', academicYear: '2025-26', itemName: '', itemAmount: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({ name: '', academicYear: '2025-26', items: [emptyGroupItem()] });
+
+  function resetForm() {
+    setEditingId(null);
+    setForm({ name: '', academicYear: '2025-26', items: [emptyGroupItem()] });
+  }
+
+  function openCreate() {
+    resetForm();
+    setOpen(true);
+  }
+
+  function openEdit(group) {
+    setEditingId(group._id || group.id);
+    setForm({
+      name: group.name || '',
+      academicYear: group.academicYear || '2025-26',
+      items: (group.items || []).length
+        ? group.items.map((item) => ({
+            feeTypeId: item.feeTypeId ? String(item.feeTypeId) : '',
+            name: item.name || '',
+            amount: item.amount != null ? String(item.amount) : '',
+            dueDate: item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+            demandDate: item.demandDate ? new Date(item.demandDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+            fineType: item.fineType || 'none',
+            fineAmount: item.fineAmount != null ? String(item.fineAmount) : '',
+          }))
+        : [emptyGroupItem()],
+    });
+    setOpen(true);
+  }
+
+  function updateItem(idx, patch) {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((item, i) => (i === idx ? { ...item, ...patch } : item)),
+    }));
+  }
+
+  function onFeeTypeChange(idx, feeTypeId) {
+    const type = feeTypes.find((t) => String(t._id || t.id) === String(feeTypeId));
+    updateItem(idx, {
+      feeTypeId,
+      name: type?.name || form.items[idx]?.name || '',
+    });
+  }
 
   async function submit(e) {
     e.preventDefault();
+    const items = form.items
+      .filter((item) => item.name && item.amount !== '')
+      .map((item) => ({
+        feeTypeId: item.feeTypeId || undefined,
+        name: item.name,
+        amount: Number(item.amount) || 0,
+        dueDate: item.dueDate || undefined,
+        demandDate: item.demandDate || undefined,
+        fineType: item.fineType || 'none',
+        fineAmount: Number(item.fineAmount) || 0,
+      }));
+    if (!items.length) {
+      toast.error('Add at least one fee type');
+      return;
+    }
     try {
-      await createGroup({
-        name: form.name,
-        academicYear: form.academicYear,
-        items: form.itemName
-          ? [{ name: form.itemName, amount: Number(form.itemAmount) || 0, dueDate: new Date(), demandDate: new Date() }]
-          : [],
-      }).unwrap();
-      toast.success('Fee group created');
+      if (editingId) {
+        await updateGroup({
+          id: editingId,
+          name: form.name,
+          academicYear: form.academicYear,
+          items,
+        }).unwrap();
+        toast.success('Fee group updated');
+      } else {
+        await createGroup({
+          name: form.name,
+          academicYear: form.academicYear,
+          items,
+        }).unwrap();
+        toast.success('Fee group created');
+      }
       setOpen(false);
-      setForm({ name: '', academicYear: '2025-26', itemName: '', itemAmount: '' });
+      resetForm();
     } catch (err) {
       toast.error(errorText(err));
     }
   }
 
   return (
-    <FeesModuleShell actions={<button type="button" className="btn btn-warn" onClick={() => setOpen(true)}>+ Add New Fee Group</button>}>
+    <FeesModuleShell actions={<button type="button" className="btn btn-warn" onClick={openCreate}>+ Add New Fee Group</button>}>
       <h2 style={{ margin: '0 0 12px' }}>Fee Groups</h2>
       <Card tight>
         {isLoading ? <Loading /> : error ? <ErrorState error={error} onRetry={refetch} /> : (
@@ -489,10 +676,10 @@ export function FeeGroupsPage() {
                   <td className="t-strong">{g.name}</td>
                   <td>
                     {(g.items || []).map((item, idx) => (
-                      <div key={idx} className="fees-group-item">
+                      <div key={item._id || idx} className="fees-group-item">
                         <div>{item.name}: {money(item.amount)}</div>
                         <div className="t-muted" style={{ fontSize: 12 }}>
-                          Due: {item.dueDate ? new Date(item.dueDate).toLocaleDateString('en-IN') : '—'} | Demand: {item.demandDate ? new Date(item.demandDate).toLocaleDateString('en-IN') : '—'} | Fine: {item.fineType || 'None'}
+                          Due: {item.dueDate ? new Date(item.dueDate).toLocaleDateString('en-IN') : '—'} | Demand: {item.demandDate ? new Date(item.demandDate).toLocaleDateString('en-IN') : '—'} | Fine: {item.fineType && item.fineType !== 'none' ? `${item.fineType}${item.fineAmount ? ` (₹${item.fineAmount})` : ''}` : 'None'}
                         </div>
                       </div>
                     ))}
@@ -500,6 +687,7 @@ export function FeeGroupsPage() {
                   <td className="t-success t-strong">{money(g.totalAmount)}</td>
                   <td className="row-actions">
                     <button type="button" className="btn btn-sm btn-secondary" onClick={() => cloneGroup(g._id || g.id)}>Clone</button>
+                    <button type="button" className="btn btn-sm" onClick={() => openEdit(g)}>Edit</button>
                     <button type="button" className="btn btn-sm btn-danger" onClick={() => remove(g._id || g.id)}>Delete</button>
                   </td>
                 </tr>
@@ -508,17 +696,76 @@ export function FeeGroupsPage() {
           </table>
         )}
       </Card>
-      <Modal open={open} onClose={() => setOpen(false)} title="Add Fee Group" footer={
+      <Modal open={open} onClose={() => { setOpen(false); resetForm(); }} title={editingId ? 'Edit Fee Group' : 'Add Fee Group'} footer={
         <>
-          <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>Cancel</button>
+          <button type="button" className="btn btn-secondary" onClick={() => { setOpen(false); resetForm(); }}>Cancel</button>
           <button type="submit" form="group-form" className="btn btn-warn">Save</button>
         </>
       }>
         <form id="group-form" className="stack" onSubmit={submit}>
           <Input label="Group name *" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
           <Input label="Academic year" value={form.academicYear} onChange={(e) => setForm((f) => ({ ...f, academicYear: e.target.value }))} />
-          <Input label="First fee item name" value={form.itemName} onChange={(e) => setForm((f) => ({ ...f, itemName: e.target.value }))} />
-          <Input label="Amount" type="number" value={form.itemAmount} onChange={(e) => setForm((f) => ({ ...f, itemAmount: e.target.value }))} />
+
+          <div className="fees-group-items-editor">
+            <div className="fees-group-items-head">
+              <strong>Fee Types *</strong>
+              <button
+                type="button"
+                className="btn btn-sm btn-warn"
+                onClick={() => setForm((f) => ({ ...f, items: [...f.items, emptyGroupItem()] }))}
+              >
+                + Add Fee Type
+              </button>
+            </div>
+            {form.items.map((item, idx) => (
+              <div key={idx} className="fees-group-item-row">
+                <div className="fees-group-item-row-top">
+                  <span className="t-muted">Type {idx + 1}</span>
+                  {form.items.length > 1 ? (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={() => setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }))}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                <div className="field">
+                  <label className="label">Fee type</label>
+                  <select
+                    className="select"
+                    value={item.feeTypeId}
+                    onChange={(e) => onFeeTypeChange(idx, e.target.value)}
+                  >
+                    <option value="">Custom / pick type</option>
+                    {feeTypes.map((t) => (
+                      <option key={t._id || t.id} value={t._id || t.id}>{t.name} ({t.code})</option>
+                    ))}
+                  </select>
+                </div>
+                <Input label="Item name *" value={item.name} onChange={(e) => updateItem(idx, { name: e.target.value })} required />
+                <Input label="Amount *" type="number" value={item.amount} onChange={(e) => updateItem(idx, { amount: e.target.value })} required />
+                <div className="fees-filter-row">
+                  <Input label="Due date" type="date" value={item.dueDate} onChange={(e) => updateItem(idx, { dueDate: e.target.value })} />
+                  <Input label="Demand date" type="date" value={item.demandDate} onChange={(e) => updateItem(idx, { demandDate: e.target.value })} />
+                </div>
+                <div className="fees-filter-row">
+                  <div className="field" style={{ flex: 1 }}>
+                    <label className="label">Fine</label>
+                    <select className="select" value={item.fineType} onChange={(e) => updateItem(idx, { fineType: e.target.value })}>
+                      <option value="none">None</option>
+                      <option value="fixed">Fixed</option>
+                      <option value="daily">Daily</option>
+                    </select>
+                  </div>
+                  {item.fineType !== 'none' ? (
+                    <Input label="Fine amount" type="number" value={item.fineAmount} onChange={(e) => updateItem(idx, { fineAmount: e.target.value })} />
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
         </form>
       </Modal>
     </FeesModuleShell>

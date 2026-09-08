@@ -22,10 +22,12 @@ export const ACCOUNTANT_NAV = [
   { id: 'types', label: 'Fee Types', icon: 'list', to: '/accountant/fees/types' },
 
   { type: 'section', label: 'ACCOUNTS MANAGEMENT' },
+  { id: 'acc-dash', label: 'Accounts Dashboard', icon: 'calc', to: '/accountant/accounts/dashboard' },
   { id: 'income', label: 'Income', icon: 'chart', to: '/accountant/accounts/income' },
-  { id: 'expense', label: 'Expense', icon: 'wallet', to: '/accountant/accounts/expense' },
+  { id: 'expense', label: 'Expense', icon: 'wallet', to: '/accountant/accounts/expenses' },
   { id: 'income-heads', label: 'Income Heads', icon: 'list', to: '/accountant/accounts/income-heads' },
   { id: 'expense-heads', label: 'Expense Heads', icon: 'list', to: '/accountant/accounts/expense-heads' },
+  { id: 'banks', label: 'Bank Accounts', icon: 'wallet', to: '/accountant/accounts/banks' },
 
   { type: 'section', label: 'ACCOUNT' },
   { id: 'logout', label: 'Logout', icon: 'logout', action: 'logout' },

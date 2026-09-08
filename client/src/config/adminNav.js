@@ -39,10 +39,9 @@ export const ADMIN_NAV = [
       { label: 'Accounts Dashboard', to: '/admin/accounts/dashboard' },
       { label: 'Income', to: '/admin/accounts/income' },
       { label: 'Expenses', to: '/admin/accounts/expenses' },
-      { label: 'Chart of Accounts', to: '/admin/accounts/chart' },
-      { label: 'Vouchers', to: '/admin/accounts/vouchers' },
+      { label: 'Income Heads', to: '/admin/accounts/income-heads' },
+      { label: 'Expense Heads', to: '/admin/accounts/expense-heads' },
       { label: 'Bank Accounts', to: '/admin/accounts/banks' },
-      { label: 'Ledger', to: '/admin/accounts/ledger' },
     ],
   },
   {

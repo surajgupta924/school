@@ -729,7 +729,7 @@ router.delete('/discounts/:id', protect, staff, async (req, res) => {
 
 /* ─────────────── Assign fee group to students ─────────────── */
 router.post('/assign', protect, staff, async (req, res) => {
-  const { feeGroupId, studentIds, demandDate, mode = 'assign' } = req.body;
+  const { feeGroupId, studentIds, demandDate, mode = 'assign', itemIds } = req.body;
   if (!feeGroupId || !Array.isArray(studentIds) || !studentIds.length) {
     return res.status(400).json({ message: 'feeGroupId and studentIds[] required' });
   }
@@ -737,20 +737,39 @@ router.post('/assign', protect, staff, async (req, res) => {
   const group = await FeeGroup.findById(feeGroupId);
   if (!group) return res.status(404).json({ message: 'Fee group not found' });
 
+  const allItems = group.items || [];
+  let items = allItems;
+  if (Array.isArray(itemIds) && itemIds.length) {
+    const wanted = new Set(itemIds.map(String));
+    items = allItems.filter((item) => wanted.has(String(item._id)));
+    if (!items.length) {
+      return res.status(400).json({ message: 'No matching fee types in this group for the given itemIds' });
+    }
+  }
+
   if (mode === 'unassign') {
-    const result = await Fee.deleteMany({
+    const filter = {
       feeGroupId,
       studentId: { $in: studentIds },
       status: 'pending',
       amountPaid: 0,
-    });
+    };
+    if (Array.isArray(itemIds) && itemIds.length) {
+      const titles = items.map((i) => i.name).filter(Boolean);
+      const typeIds = items.map((i) => i.feeTypeId).filter(Boolean);
+      const or = [];
+      if (titles.length) or.push({ title: { $in: titles } });
+      if (typeIds.length) or.push({ feeTypeId: { $in: typeIds } });
+      if (or.length) filter.$or = or;
+    }
+    const result = await Fee.deleteMany(filter);
     await cacheDel('finance:dashboard:*');
     return res.json({ message: `Removed ${result.deletedCount} unassigned fee lines`, removed: result.deletedCount });
   }
 
   const created = [];
   for (const studentId of studentIds) {
-    for (const item of group.items || []) {
+    for (const item of items) {
       const fee = await Fee.create({
         studentId,
         title: item.name,
@@ -775,12 +794,11 @@ router.post('/assign', protect, staff, async (req, res) => {
     resource: 'fee-group',
     resourceId: group._id,
     req,
-    meta: { students: studentIds.length, created: created.length },
+    meta: { students: studentIds.length, created: created.length, itemCount: items.length },
   });
 
   res.status(201).json({ message: `Assigned ${created.length} fee line(s)`, created: created.length });
 });
-
 /* ─────────────── Challans ─────────────── */
 router.get('/challans', protect, staff, async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 10, maxLimit: 100 });

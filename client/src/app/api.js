@@ -100,6 +100,12 @@ export const api = createApi({
     'FeeDiscount',
     'FeeChallan',
     'DueSlip',
+    'AccountsDashboard',
+    'AccountHead',
+    'AccountEntry',
+    'BankAccount',
+    'SchoolEvent',
+    'Visitor',
   ],
   endpoints: (builder) => ({
     /* ─────────────── Auth ─────────────── */
@@ -126,6 +132,46 @@ export const api = createApi({
     getStats: builder.query({
       query: () => '/dashboard/stats',
       providesTags: ['Stats'],
+    }),
+    getBirthdays: builder.query({
+      query: (params = {}) => ({ url: '/dashboard/birthdays', params }),
+      providesTags: ['Stats'],
+    }),
+    getUpcomingEvents: builder.query({
+      query: (params = {}) => ({ url: '/dashboard/upcoming-events', params }),
+      providesTags: ['SchoolEvent'],
+    }),
+    getSchoolEvents: builder.query({
+      query: (params = {}) => ({ url: '/office/events', params }),
+      providesTags: ['SchoolEvent'],
+    }),
+    createSchoolEvent: builder.mutation({
+      query: (body) => ({ url: '/office/events', method: 'POST', body }),
+      invalidatesTags: ['SchoolEvent'],
+    }),
+    updateSchoolEvent: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/office/events/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['SchoolEvent'],
+    }),
+    deleteSchoolEvent: builder.mutation({
+      query: (id) => ({ url: `/office/events/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['SchoolEvent'],
+    }),
+    getVisitors: builder.query({
+      query: (params = {}) => ({ url: '/office/visitors', params }),
+      providesTags: ['Visitor'],
+    }),
+    createVisitor: builder.mutation({
+      query: (body) => ({ url: '/office/visitors', method: 'POST', body }),
+      invalidatesTags: ['Visitor'],
+    }),
+    checkoutVisitor: builder.mutation({
+      query: (id) => ({ url: `/office/visitors/${id}/checkout`, method: 'PATCH' }),
+      invalidatesTags: ['Visitor'],
+    }),
+    deleteVisitor: builder.mutation({
+      query: (id) => ({ url: `/office/visitors/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Visitor'],
     }),
 
     /* ─────────────── Students ─────────────── */
@@ -664,6 +710,97 @@ export const api = createApi({
       query: ({ id, ...body }) => ({ url: `/finance/fees/${id}/discount`, method: 'PATCH', body }),
       invalidatesTags: ['FinanceLedger', 'FinanceDue', 'FinanceDashboard', 'Fee'],
     }),
+
+    /* ─────────────── Accounts / Bookkeeping ─────────────── */
+    getAccountsDashboard: builder.query({
+      query: () => '/accounts/dashboard',
+      providesTags: ['AccountsDashboard'],
+    }),
+    getIncomeHeads: builder.query({
+      query: (params = {}) => ({ url: '/accounts/income-heads', params }),
+      providesTags: ['AccountHead'],
+    }),
+    createIncomeHead: builder.mutation({
+      query: (body) => ({ url: '/accounts/income-heads', method: 'POST', body }),
+      invalidatesTags: ['AccountHead'],
+    }),
+    updateIncomeHead: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/accounts/income-heads/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['AccountHead'],
+    }),
+    deleteIncomeHead: builder.mutation({
+      query: (id) => ({ url: `/accounts/income-heads/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['AccountHead'],
+    }),
+    getExpenseHeads: builder.query({
+      query: (params = {}) => ({ url: '/accounts/expense-heads', params }),
+      providesTags: ['AccountHead'],
+    }),
+    createExpenseHead: builder.mutation({
+      query: (body) => ({ url: '/accounts/expense-heads', method: 'POST', body }),
+      invalidatesTags: ['AccountHead'],
+    }),
+    updateExpenseHead: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/accounts/expense-heads/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['AccountHead'],
+    }),
+    deleteExpenseHead: builder.mutation({
+      query: (id) => ({ url: `/accounts/expense-heads/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['AccountHead'],
+    }),
+    getIncomeEntries: builder.query({
+      query: (params = {}) => ({ url: '/accounts/income', params }),
+      providesTags: ['AccountEntry'],
+    }),
+    createIncomeEntry: builder.mutation({
+      query: (body) => ({ url: '/accounts/income', method: 'POST', body }),
+      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+    }),
+    updateIncomeEntry: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/accounts/income/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+    }),
+    deleteIncomeEntry: builder.mutation({
+      query: (id) => ({ url: `/accounts/income/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+    }),
+    getExpenseEntries: builder.query({
+      query: (params = {}) => ({ url: '/accounts/expense', params }),
+      providesTags: ['AccountEntry'],
+    }),
+    createExpenseEntry: builder.mutation({
+      query: (body) => ({ url: '/accounts/expense', method: 'POST', body }),
+      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+    }),
+    updateExpenseEntry: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/accounts/expense/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+    }),
+    deleteExpenseEntry: builder.mutation({
+      query: (id) => ({ url: `/accounts/expense/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+    }),
+    getBankAccounts: builder.query({
+      query: () => '/accounts/banks',
+      transformResponse: (res) => res?.banks || [],
+      providesTags: ['BankAccount'],
+    }),
+    createBankAccount: builder.mutation({
+      query: (body) => ({ url: '/accounts/banks', method: 'POST', body }),
+      invalidatesTags: ['BankAccount', 'AccountsDashboard'],
+    }),
+    updateBankAccount: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/accounts/banks/${id}`, method: 'PUT', body }),
+      invalidatesTags: ['BankAccount', 'AccountsDashboard'],
+    }),
+    deleteBankAccount: builder.mutation({
+      query: (id) => ({ url: `/accounts/banks/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['BankAccount', 'AccountsDashboard'],
+    }),
+    getBankLedger: builder.query({
+      query: ({ id, ...params }) => ({ url: `/accounts/banks/${id}/ledger`, params }),
+      providesTags: ['AccountEntry', 'BankAccount'],
+    }),
   }),
 });
 
@@ -776,4 +913,36 @@ export const {
   useGenerateDueSlipsMutation,
   useGetDueSlipsQuery,
   useApplyFeeDiscountMutation,
+  useGetAccountsDashboardQuery,
+  useGetIncomeHeadsQuery,
+  useCreateIncomeHeadMutation,
+  useUpdateIncomeHeadMutation,
+  useDeleteIncomeHeadMutation,
+  useGetExpenseHeadsQuery,
+  useCreateExpenseHeadMutation,
+  useUpdateExpenseHeadMutation,
+  useDeleteExpenseHeadMutation,
+  useGetIncomeEntriesQuery,
+  useCreateIncomeEntryMutation,
+  useUpdateIncomeEntryMutation,
+  useDeleteIncomeEntryMutation,
+  useGetExpenseEntriesQuery,
+  useCreateExpenseEntryMutation,
+  useUpdateExpenseEntryMutation,
+  useDeleteExpenseEntryMutation,
+  useGetBankAccountsQuery,
+  useCreateBankAccountMutation,
+  useUpdateBankAccountMutation,
+  useDeleteBankAccountMutation,
+  useGetBankLedgerQuery,
+  useGetBirthdaysQuery,
+  useGetUpcomingEventsQuery,
+  useGetSchoolEventsQuery,
+  useCreateSchoolEventMutation,
+  useUpdateSchoolEventMutation,
+  useDeleteSchoolEventMutation,
+  useGetVisitorsQuery,
+  useCreateVisitorMutation,
+  useCheckoutVisitorMutation,
+  useDeleteVisitorMutation,
 } = api;
