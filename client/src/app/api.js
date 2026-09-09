@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { logout, setTokens } from '../features/auth/authSlice';
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: '/api',
+  baseUrl: import.meta.env.VITE_API_URL || '/api',
   credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth?.accessToken;
@@ -20,6 +20,7 @@ let refreshPromise = null;
 
 async function runRefresh(api, extraOptions) {
   const refreshToken = api.getState().auth?.refreshToken;
+
   const result = await rawBaseQuery(
     {
       url: '/auth/refresh',
@@ -44,6 +45,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 
   if (result.error?.status === 401) {
     const url = typeof args === 'string' ? args : String(args?.url || '');
+
     if (url.includes('/auth/login') || url.includes('/auth/refresh')) {
       return result;
     }
@@ -55,6 +57,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
     }
 
     const newToken = await refreshPromise;
+
     if (newToken) {
       result = await rawBaseQuery(args, api, extraOptions);
     }
@@ -107,25 +110,34 @@ export const api = createApi({
     'SchoolEvent',
     'Visitor',
   ],
+
   endpoints: (builder) => ({
     /* ─────────────── Auth ─────────────── */
     login: builder.mutation({
       query: (body) => ({ url: '/auth/login', method: 'POST', body }),
       invalidatesTags: ['Auth', 'Stats', 'Inbox'],
     }),
+
     logoutServer: builder.mutation({
       query: () => ({ url: '/auth/logout', method: 'POST' }),
     }),
+
     me: builder.query({
       query: () => '/auth/me',
       providesTags: ['Auth'],
     }),
+
     demoAccounts: builder.query({
       query: () => '/auth/demo-accounts',
       transformResponse: (res) => res?.accounts || [],
     }),
+
     changePassword: builder.mutation({
-      query: (body) => ({ url: '/auth/change-password', method: 'POST', body }),
+      query: (body) => ({
+        url: '/auth/change-password',
+        method: 'POST',
+        body,
+      }),
     }),
 
     /* ─────────────── Dashboard ─────────────── */
@@ -133,44 +145,87 @@ export const api = createApi({
       query: () => '/dashboard/stats',
       providesTags: ['Stats'],
     }),
+
     getBirthdays: builder.query({
-      query: (params = {}) => ({ url: '/dashboard/birthdays', params }),
+      query: (params = {}) => ({
+        url: '/dashboard/birthdays',
+        params,
+      }),
       providesTags: ['Stats'],
     }),
+
     getUpcomingEvents: builder.query({
-      query: (params = {}) => ({ url: '/dashboard/upcoming-events', params }),
+      query: (params = {}) => ({
+        url: '/dashboard/upcoming-events',
+        params,
+      }),
       providesTags: ['SchoolEvent'],
     }),
+
     getSchoolEvents: builder.query({
-      query: (params = {}) => ({ url: '/office/events', params }),
+      query: (params = {}) => ({
+        url: '/office/events',
+        params,
+      }),
       providesTags: ['SchoolEvent'],
     }),
+
     createSchoolEvent: builder.mutation({
-      query: (body) => ({ url: '/office/events', method: 'POST', body }),
+      query: (body) => ({
+        url: '/office/events',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['SchoolEvent'],
     }),
+
     updateSchoolEvent: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/office/events/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/office/events/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['SchoolEvent'],
     }),
+
     deleteSchoolEvent: builder.mutation({
-      query: (id) => ({ url: `/office/events/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/office/events/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['SchoolEvent'],
     }),
+
     getVisitors: builder.query({
-      query: (params = {}) => ({ url: '/office/visitors', params }),
+      query: (params = {}) => ({
+        url: '/office/visitors',
+        params,
+      }),
       providesTags: ['Visitor'],
     }),
+
     createVisitor: builder.mutation({
-      query: (body) => ({ url: '/office/visitors', method: 'POST', body }),
+      query: (body) => ({
+        url: '/office/visitors',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['Visitor'],
     }),
+
     checkoutVisitor: builder.mutation({
-      query: (id) => ({ url: `/office/visitors/${id}/checkout`, method: 'PATCH' }),
+      query: (id) => ({
+        url: `/office/visitors/${id}/checkout`,
+        method: 'PATCH',
+      }),
       invalidatesTags: ['Visitor'],
     }),
+
     deleteVisitor: builder.mutation({
-      query: (id) => ({ url: `/office/visitors/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/office/visitors/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['Visitor'],
     }),
 
@@ -198,40 +253,61 @@ export const api = createApi({
       providesTags: (result) =>
         result?.students?.length
           ? [
-              ...result.students.map((s) => ({ type: 'Student', id: s.id })),
+              ...result.students.map((s) => ({
+                type: 'Student',
+                id: s.id,
+              })),
               { type: 'Student', id: 'LIST' },
             ]
           : [{ type: 'Student', id: 'LIST' }],
     }),
-    /** Capped list for dropdowns / attendance marking (max 500) */
+
     getStudentOptions: builder.query({
-      query: (params = {}) => ({ url: '/students/options', params }),
+      query: (params = {}) => ({
+        url: '/students/options',
+        params,
+      }),
       transformResponse: (res) => res?.students || [],
       providesTags: [{ type: 'Student', id: 'OPTIONS' }],
     }),
+
     getStudent: builder.query({
       query: (id) => `/students/${id}`,
       transformResponse: (res) => res?.student,
       providesTags: (r, e, id) => [{ type: 'Student', id }],
     }),
+
     createStudent: builder.mutation({
-      query: (body) => ({ url: '/students', method: 'POST', body }),
+      query: (body) => ({
+        url: '/students',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [
         { type: 'Student', id: 'LIST' },
         { type: 'Student', id: 'OPTIONS' },
         'Stats',
       ],
     }),
+
     updateStudent: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/students/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/students/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: (r, e, arg) => [
         { type: 'Student', id: arg.id },
         { type: 'Student', id: 'LIST' },
         { type: 'Student', id: 'OPTIONS' },
       ],
     }),
+
     deleteStudent: builder.mutation({
-      query: (id) => ({ url: `/students/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/students/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [
         { type: 'Student', id: 'LIST' },
         { type: 'Student', id: 'OPTIONS' },
@@ -245,93 +321,178 @@ export const api = createApi({
       transformResponse: (res) => res?.teachers || [],
       providesTags: (result) =>
         result
-          ? [...result.map((t) => ({ type: 'Teacher', id: t.id })), { type: 'Teacher', id: 'LIST' }]
+          ? [
+              ...result.map((t) => ({
+                type: 'Teacher',
+                id: t.id,
+              })),
+              { type: 'Teacher', id: 'LIST' },
+            ]
           : [{ type: 'Teacher', id: 'LIST' }],
     }),
+
     createTeacher: builder.mutation({
-      query: (body) => ({ url: '/teachers', method: 'POST', body }),
+      query: (body) => ({
+        url: '/teachers',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Teacher', id: 'LIST' }, 'Stats'],
     }),
+
     updateTeacher: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/teachers/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/teachers/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: [{ type: 'Teacher', id: 'LIST' }],
     }),
+
     deleteTeacher: builder.mutation({
-      query: (id) => ({ url: `/teachers/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/teachers/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Teacher', id: 'LIST' }, 'Stats'],
     }),
 
     /* ─────────────── Staff & Parents ─────────────── */
     getStaff: builder.query({
-      query: (params = {}) => ({ url: '/staff', params }),
+      query: (params = {}) => ({
+        url: '/staff',
+        params,
+      }),
       transformResponse: (res) => res?.staff || [],
       providesTags: [{ type: 'Staff', id: 'LIST' }],
     }),
+
     createStaff: builder.mutation({
-      query: (body) => ({ url: '/staff', method: 'POST', body }),
+      query: (body) => ({
+        url: '/staff',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Staff', id: 'LIST' }, 'Stats'],
     }),
+
     updateStaff: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/staff/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/staff/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: [{ type: 'Staff', id: 'LIST' }],
     }),
+
     deleteStaff: builder.mutation({
-      query: (id) => ({ url: `/staff/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/staff/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Staff', id: 'LIST' }, 'Stats'],
     }),
+
     getParents: builder.query({
       query: () => '/staff/parents/list',
       transformResponse: (res) => res?.parents || [],
       providesTags: [{ type: 'Parent', id: 'LIST' }],
     }),
+
     createParent: builder.mutation({
-      query: (body) => ({ url: '/staff/parents', method: 'POST', body }),
+      query: (body) => ({
+        url: '/staff/parents',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Parent', id: 'LIST' }, 'Stats'],
     }),
 
     /* ─────────────── Classes ─────────────── */
     getClasses: builder.query({
-      query: (params = {}) => ({ url: '/classes', params }),
+      query: (params = {}) => ({
+        url: '/classes',
+        params,
+      }),
       transformResponse: (res) => res?.classes || [],
       providesTags: [{ type: 'Class', id: 'LIST' }],
     }),
+
     createClass: builder.mutation({
-      query: (body) => ({ url: '/classes', method: 'POST', body }),
+      query: (body) => ({
+        url: '/classes',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Class', id: 'LIST' }],
     }),
+
     updateClass: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/classes/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/classes/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: [{ type: 'Class', id: 'LIST' }],
     }),
+
     deleteClass: builder.mutation({
-      query: (id) => ({ url: `/classes/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/classes/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Class', id: 'LIST' }],
     }),
 
     /* ─────────────── Attendance ─────────────── */
     getAttendance: builder.query({
-      query: (params = {}) => ({ url: '/attendance', params }),
+      query: (params = {}) => ({
+        url: '/attendance',
+        params,
+      }),
       transformResponse: (res) => res?.attendance || [],
       providesTags: [{ type: 'Attendance', id: 'LIST' }],
     }),
+
     getAttendanceToday: builder.query({
-      query: (params = {}) => ({ url: '/attendance/today', params }),
+      query: (params = {}) => ({
+        url: '/attendance/today',
+        params,
+      }),
       providesTags: [{ type: 'Attendance', id: 'TODAY' }],
     }),
+
     getAttendanceReport: builder.query({
-      query: (params = {}) => ({ url: '/attendance/reports', params }),
+      query: (params = {}) => ({
+        url: '/attendance/reports',
+        params,
+      }),
       providesTags: [{ type: 'Attendance', id: 'REPORT' }],
     }),
+
     markAttendance: builder.mutation({
-      query: (body) => ({ url: '/attendance/mark', method: 'POST', body }),
+      query: (body) => ({
+        url: '/attendance/mark',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['Attendance', 'Stats'],
     }),
+
     scanQrAttendance: builder.mutation({
-      // Server contract: { token, session, status }
-      query: ({ qrToken, token, session = 'morning', status = 'present' }) => ({
+      query: ({
+        qrToken,
+        token,
+        session = 'morning',
+        status = 'present',
+      }) => ({
         url: '/attendance/scan-qr',
         method: 'POST',
-        body: { token: token || qrToken, session, status },
+        body: {
+          token: token || qrToken,
+          session,
+          status,
+        },
       }),
       invalidatesTags: ['Attendance', 'Stats'],
     }),
@@ -342,6 +503,7 @@ export const api = createApi({
       transformResponse: (res) => res?.idCard,
       providesTags: (r, e, id) => [{ type: 'IdCard', id }],
     }),
+
     generateStudentQr: builder.mutation({
       query: ({ studentId, rotate = false }) => ({
         url: `/idcard/student/${studentId}/qr`,
@@ -349,7 +511,9 @@ export const api = createApi({
         body: { rotate },
       }),
       transformResponse: (res) => res?.qr,
-      invalidatesTags: (r, e, arg) => [{ type: 'IdCard', id: arg.studentId }],
+      invalidatesTags: (r, e, arg) => [
+        { type: 'IdCard', id: arg.studentId },
+      ],
     }),
 
     /* ─────────────── Fees ─────────────── */
@@ -373,76 +537,145 @@ export const api = createApi({
       }),
       providesTags: [{ type: 'Fee', id: 'LIST' }],
     }),
+
     createFee: builder.mutation({
-      query: (body) => ({ url: '/fees', method: 'POST', body }),
+      query: (body) => ({
+        url: '/fees',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Fee', id: 'LIST' }, 'Stats', 'Inbox'],
     }),
+
     payFee: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/fees/${id}/pay`, method: 'PATCH', body }),
+      query: ({ id, ...body }) => ({
+        url: `/fees/${id}/pay`,
+        method: 'PATCH',
+        body,
+      }),
       invalidatesTags: [{ type: 'Fee', id: 'LIST' }, 'Receipt', 'Stats'],
     }),
+
     sendFeeReminders: builder.mutation({
-      query: () => ({ url: '/fees/reminders', method: 'POST' }),
+      query: () => ({
+        url: '/fees/reminders',
+        method: 'POST',
+      }),
       invalidatesTags: ['Inbox'],
     }),
+
     getReceipts: builder.query({
-      query: (params = {}) => ({ url: '/fees/receipts', params }),
+      query: (params = {}) => ({
+        url: '/fees/receipts',
+        params,
+      }),
       transformResponse: (res) => res?.receipts || [],
       providesTags: ['Receipt'],
     }),
 
     /* ─────────────── Transport ─────────────── */
     getRoutes: builder.query({
-      query: (params = {}) => ({ url: '/transport/routes', params }),
+      query: (params = {}) => ({
+        url: '/transport/routes',
+        params,
+      }),
       transformResponse: (res) => res?.routes || [],
       providesTags: [{ type: 'Route', id: 'LIST' }],
     }),
+
     createRoute: builder.mutation({
-      query: (body) => ({ url: '/transport/routes', method: 'POST', body }),
+      query: (body) => ({
+        url: '/transport/routes',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Route', id: 'LIST' }],
     }),
+
     updateRoute: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/transport/routes/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/transport/routes/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: [{ type: 'Route', id: 'LIST' }],
     }),
+
     deleteRoute: builder.mutation({
-      query: (id) => ({ url: `/transport/routes/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/transport/routes/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Route', id: 'LIST' }],
     }),
 
     getVehicles: builder.query({
-      query: (params = {}) => ({ url: '/transport/vehicles', params }),
+      query: (params = {}) => ({
+        url: '/transport/vehicles',
+        params,
+      }),
       transformResponse: (res) => res?.vehicles || [],
       providesTags: [{ type: 'Vehicle', id: 'LIST' }],
     }),
+
     createVehicle: builder.mutation({
-      query: (body) => ({ url: '/transport/vehicles', method: 'POST', body }),
+      query: (body) => ({
+        url: '/transport/vehicles',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Vehicle', id: 'LIST' }, 'Stats'],
     }),
+
     updateVehicle: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/transport/vehicles/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/transport/vehicles/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: [{ type: 'Vehicle', id: 'LIST' }],
     }),
+
     deleteVehicle: builder.mutation({
-      query: (id) => ({ url: `/transport/vehicles/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/transport/vehicles/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Vehicle', id: 'LIST' }, 'Stats'],
     }),
 
     getAssignments: builder.query({
-      query: (params = {}) => ({ url: '/transport/assignments', params }),
+      query: (params = {}) => ({
+        url: '/transport/assignments',
+        params,
+      }),
       transformResponse: (res) => res?.assignments || [],
       providesTags: [{ type: 'Assignment', id: 'LIST' }],
     }),
+
     createAssignment: builder.mutation({
-      query: (body) => ({ url: '/transport/assignments', method: 'POST', body }),
+      query: (body) => ({
+        url: '/transport/assignments',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Assignment', id: 'LIST' }],
     }),
+
     updateAssignment: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/transport/assignments/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/transport/assignments/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: [{ type: 'Assignment', id: 'LIST' }],
     }),
+
     deleteAssignment: builder.mutation({
-      query: (id) => ({ url: `/transport/assignments/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/transport/assignments/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Assignment', id: 'LIST' }],
     }),
 
@@ -451,20 +684,31 @@ export const api = createApi({
       transformResponse: (res) => res?.trips || [],
       providesTags: [{ type: 'Trip', id: 'ACTIVE' }],
     }),
+
     getTripHistory: builder.query({
       query: (id) => `/transport/trips/${id}/history`,
       transformResponse: (res) => res?.trip,
       providesTags: (r, e, id) => [{ type: 'Trip', id }],
     }),
+
     startTrip: builder.mutation({
-      query: (body) => ({ url: '/transport/trips/start', method: 'POST', body }),
+      query: (body) => ({
+        url: '/transport/trips/start',
+        method: 'POST',
+        body,
+      }),
       transformResponse: (res) => res?.trip,
       invalidatesTags: [{ type: 'Trip', id: 'ACTIVE' }, 'Stats'],
     }),
+
     endTrip: builder.mutation({
-      query: (id) => ({ url: `/transport/trips/${id}/end`, method: 'POST' }),
+      query: (id) => ({
+        url: `/transport/trips/${id}/end`,
+        method: 'POST',
+      }),
       invalidatesTags: [{ type: 'Trip', id: 'ACTIVE' }, 'Stats'],
     }),
+
     pushTripLocation: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/transport/trips/${id}/location`,
@@ -475,67 +719,127 @@ export const api = createApi({
 
     /* ─────────────── Exams ─────────────── */
     getExams: builder.query({
-      query: (params = {}) => ({ url: '/exams', params }),
+      query: (params = {}) => ({
+        url: '/exams',
+        params,
+      }),
       transformResponse: (res) => res?.exams || [],
       providesTags: [{ type: 'Exam', id: 'LIST' }],
     }),
+
     createExam: builder.mutation({
-      query: (body) => ({ url: '/exams', method: 'POST', body }),
+      query: (body) => ({
+        url: '/exams',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Exam', id: 'LIST' }],
     }),
+
     updateExam: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/exams/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/exams/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: [{ type: 'Exam', id: 'LIST' }],
     }),
+
     deleteExam: builder.mutation({
-      query: (id) => ({ url: `/exams/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/exams/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Exam', id: 'LIST' }],
     }),
+
     getExamResults: builder.query({
       query: (id) => `/exams/${id}/results`,
       transformResponse: (res) => res?.results || [],
       providesTags: (r, e, id) => [{ type: 'ExamResult', id }],
     }),
+
     saveExamResults: builder.mutation({
-      query: ({ id, results }) => ({ url: `/exams/${id}/results`, method: 'POST', body: { results } }),
-      invalidatesTags: (r, e, arg) => [{ type: 'ExamResult', id: arg.id }, 'Inbox'],
+      query: ({ id, results }) => ({
+        url: `/exams/${id}/results`,
+        method: 'POST',
+        body: { results },
+      }),
+      invalidatesTags: (r, e, arg) => [
+        { type: 'ExamResult', id: arg.id },
+        'Inbox',
+      ],
     }),
 
     /* ─────────────── Homework ─────────────── */
     getHomework: builder.query({
-      query: (params = {}) => ({ url: '/homework', params }),
+      query: (params = {}) => ({
+        url: '/homework',
+        params,
+      }),
       transformResponse: (res) => res?.homework || [],
       providesTags: [{ type: 'Homework', id: 'LIST' }],
     }),
+
     createHomework: builder.mutation({
-      query: (body) => ({ url: '/homework', method: 'POST', body }),
+      query: (body) => ({
+        url: '/homework',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Homework', id: 'LIST' }, 'Inbox'],
     }),
+
     updateHomework: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/homework/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/homework/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: [{ type: 'Homework', id: 'LIST' }],
     }),
+
     deleteHomework: builder.mutation({
-      query: (id) => ({ url: `/homework/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/homework/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Homework', id: 'LIST' }],
     }),
 
     /* ─────────────── Leaves ─────────────── */
     getLeaves: builder.query({
-      query: (params = {}) => ({ url: '/leaves', params }),
+      query: (params = {}) => ({
+        url: '/leaves',
+        params,
+      }),
       transformResponse: (res) => res?.leaves || [],
       providesTags: [{ type: 'Leave', id: 'LIST' }],
     }),
+
     createLeave: builder.mutation({
-      query: (body) => ({ url: '/leaves', method: 'POST', body }),
+      query: (body) => ({
+        url: '/leaves',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Leave', id: 'LIST' }, 'Stats'],
     }),
+
     reviewLeave: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/leaves/${id}/review`, method: 'PATCH', body }),
+      query: ({ id, ...body }) => ({
+        url: `/leaves/${id}/review`,
+        method: 'PATCH',
+        body,
+      }),
       invalidatesTags: [{ type: 'Leave', id: 'LIST' }, 'Stats', 'Inbox'],
     }),
+
     cancelLeave: builder.mutation({
-      query: (id) => ({ url: `/leaves/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/leaves/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Leave', id: 'LIST' }, 'Stats'],
     }),
 
@@ -545,25 +849,43 @@ export const api = createApi({
       transformResponse: (res) => res?.notices || [],
       providesTags: [{ type: 'Notice', id: 'LIST' }],
     }),
+
     createNotice: builder.mutation({
-      query: (body) => ({ url: '/notifications/notices', method: 'POST', body }),
+      query: (body) => ({
+        url: '/notifications/notices',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: [{ type: 'Notice', id: 'LIST' }, 'Inbox', 'Stats'],
     }),
+
     deleteNotice: builder.mutation({
-      query: (id) => ({ url: `/notifications/notices/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/notifications/notices/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: [{ type: 'Notice', id: 'LIST' }],
     }),
+
     getInbox: builder.query({
       query: () => '/notifications/inbox',
       transformResponse: (res) => res?.notifications || [],
       providesTags: ['Inbox'],
     }),
+
     markNotificationRead: builder.mutation({
-      query: (id) => ({ url: `/notifications/inbox/${id}/read`, method: 'PATCH' }),
+      query: (id) => ({
+        url: `/notifications/inbox/${id}/read`,
+        method: 'PATCH',
+      }),
       invalidatesTags: ['Inbox', 'Stats'],
     }),
+
     markAllNotificationsRead: builder.mutation({
-      query: () => ({ url: '/notifications/inbox/read-all', method: 'PATCH' }),
+      query: () => ({
+        url: '/notifications/inbox/read-all',
+        method: 'PATCH',
+      }),
       invalidatesTags: ['Inbox', 'Stats'],
     }),
 
@@ -573,12 +895,21 @@ export const api = createApi({
       transformResponse: (res) => res?.settings,
       providesTags: ['Settings'],
     }),
+
     updateSettings: builder.mutation({
-      query: (body) => ({ url: '/settings', method: 'PUT', body }),
+      query: (body) => ({
+        url: '/settings',
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['Settings', 'Stats'],
     }),
+
     getAuditLogs: builder.query({
-      query: (params = { limit: 100 }) => ({ url: '/settings/audit-logs', params }),
+      query: (params = { limit: 100 }) => ({
+        url: '/settings/audit-logs',
+        params,
+      }),
       transformResponse: (res) => res?.logs || [],
       providesTags: ['Audit'],
     }),
@@ -589,126 +920,258 @@ export const api = createApi({
       transformResponse: (res) => res?.children || [],
       providesTags: ['Students'],
     }),
+
     getParentMessages: builder.query({
-      query: (params = {}) => ({ url: '/parent/messages', params }),
+      query: (params = {}) => ({
+        url: '/parent/messages',
+        params,
+      }),
       transformResponse: (res) => res?.messages || [],
       providesTags: ['Inbox'],
     }),
+
     sendParentAlert: builder.mutation({
-      query: (body) => ({ url: '/parent/alert', method: 'POST', body }),
+      query: (body) => ({
+        url: '/parent/alert',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['Inbox'],
     }),
 
-    /* ─────────────── Finance module (production fees ERP) ─────────────── */
+    /* ─────────────── Finance module ─────────────── */
     getFinanceDashboard: builder.query({
       query: () => '/finance/dashboard',
       providesTags: ['FinanceDashboard'],
     }),
+
     getDueStudents: builder.query({
-      query: (params = {}) => ({ url: '/finance/due-students', params }),
+      query: (params = {}) => ({
+        url: '/finance/due-students',
+        params,
+      }),
       providesTags: ['FinanceDue'],
     }),
+
     getStudentLedger: builder.query({
       query: (id) => `/finance/student/${id}/ledger`,
       providesTags: (r, e, id) => [{ type: 'FinanceLedger', id }],
     }),
+
     collectFees: builder.mutation({
-      query: (body) => ({ url: '/finance/collect', method: 'POST', body }),
-      invalidatesTags: ['FinanceDashboard', 'FinanceDue', 'FinanceLedger', 'Fee', 'Receipt'],
+      query: (body) => ({
+        url: '/finance/collect',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        'FinanceDashboard',
+        'FinanceDue',
+        'FinanceLedger',
+        'Fee',
+        'Receipt',
+      ],
     }),
+
     getDueReport: builder.query({
-      query: (params = {}) => ({ url: '/finance/due-report', params }),
+      query: (params = {}) => ({
+        url: '/finance/due-report',
+        params,
+      }),
       providesTags: ['FinanceDue'],
     }),
+
     getFinanceTransactions: builder.query({
-      query: (params = {}) => ({ url: '/finance/transactions', params }),
+      query: (params = {}) => ({
+        url: '/finance/transactions',
+        params,
+      }),
       providesTags: ['FinanceTxn'],
     }),
+
     getFeeTypes: builder.query({
-      query: (params = {}) => ({ url: '/finance/types', params }),
+      query: (params = {}) => ({
+        url: '/finance/types',
+        params,
+      }),
       providesTags: ['FeeType'],
     }),
+
     createFeeType: builder.mutation({
-      query: (body) => ({ url: '/finance/types', method: 'POST', body }),
+      query: (body) => ({
+        url: '/finance/types',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['FeeType', 'FinanceDashboard'],
     }),
+
     updateFeeType: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/finance/types/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/finance/types/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['FeeType'],
     }),
+
     deleteFeeType: builder.mutation({
-      query: (id) => ({ url: `/finance/types/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/finance/types/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['FeeType', 'FinanceDashboard'],
     }),
+
     getFeeGroups: builder.query({
       query: () => '/finance/groups',
       transformResponse: (res) => res?.groups || [],
       providesTags: ['FeeGroup'],
     }),
+
     createFeeGroup: builder.mutation({
-      query: (body) => ({ url: '/finance/groups', method: 'POST', body }),
+      query: (body) => ({
+        url: '/finance/groups',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['FeeGroup', 'FinanceDashboard'],
     }),
+
     updateFeeGroup: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/finance/groups/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/finance/groups/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['FeeGroup'],
     }),
+
     cloneFeeGroup: builder.mutation({
-      query: (id) => ({ url: `/finance/groups/${id}/clone`, method: 'POST' }),
+      query: (id) => ({
+        url: `/finance/groups/${id}/clone`,
+        method: 'POST',
+      }),
       invalidatesTags: ['FeeGroup'],
     }),
+
     deleteFeeGroup: builder.mutation({
-      query: (id) => ({ url: `/finance/groups/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/finance/groups/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['FeeGroup', 'FinanceDashboard'],
     }),
+
     getFeeDiscounts: builder.query({
       query: () => '/finance/discounts',
       transformResponse: (res) => res?.discounts || [],
       providesTags: ['FeeDiscount'],
     }),
+
     createFeeDiscount: builder.mutation({
-      query: (body) => ({ url: '/finance/discounts', method: 'POST', body }),
+      query: (body) => ({
+        url: '/finance/discounts',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['FeeDiscount', 'FinanceDashboard'],
     }),
+
     updateFeeDiscount: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/finance/discounts/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/finance/discounts/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['FeeDiscount'],
     }),
+
     deleteFeeDiscount: builder.mutation({
-      query: (id) => ({ url: `/finance/discounts/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/finance/discounts/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['FeeDiscount', 'FinanceDashboard'],
     }),
+
     assignFeeGroup: builder.mutation({
-      query: (body) => ({ url: '/finance/assign', method: 'POST', body }),
-      invalidatesTags: ['FinanceDashboard', 'FinanceDue', 'Fee', 'FinanceLedger'],
+      query: (body) => ({
+        url: '/finance/assign',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        'FinanceDashboard',
+        'FinanceDue',
+        'Fee',
+        'FinanceLedger',
+      ],
     }),
+
     getFeeChallans: builder.query({
-      query: (params = {}) => ({ url: '/finance/challans', params }),
+      query: (params = {}) => ({
+        url: '/finance/challans',
+        params,
+      }),
       providesTags: ['FeeChallan'],
     }),
+
     createFeeChallan: builder.mutation({
-      query: (body) => ({ url: '/finance/challans', method: 'POST', body }),
+      query: (body) => ({
+        url: '/finance/challans',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['FeeChallan', 'FinanceDashboard'],
     }),
+
     updateFeeChallanStatus: builder.mutation({
-      query: ({ id, status }) => ({ url: `/finance/challans/${id}/status`, method: 'PATCH', body: { status } }),
+      query: ({ id, status }) => ({
+        url: `/finance/challans/${id}/status`,
+        method: 'PATCH',
+        body: { status },
+      }),
       invalidatesTags: ['FeeChallan'],
     }),
+
     deleteFeeChallan: builder.mutation({
-      query: (id) => ({ url: `/finance/challans/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/finance/challans/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['FeeChallan'],
     }),
+
     generateDueSlips: builder.mutation({
-      query: (body) => ({ url: '/finance/due-slips/generate', method: 'POST', body }),
+      query: (body) => ({
+        url: '/finance/due-slips/generate',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['DueSlip'],
     }),
+
     getDueSlips: builder.query({
-      query: (params = {}) => ({ url: '/finance/due-slips', params }),
+      query: (params = {}) => ({
+        url: '/finance/due-slips',
+        params,
+      }),
       providesTags: ['DueSlip'],
     }),
+
     applyFeeDiscount: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/finance/fees/${id}/discount`, method: 'PATCH', body }),
-      invalidatesTags: ['FinanceLedger', 'FinanceDue', 'FinanceDashboard', 'Fee'],
+      query: ({ id, ...body }) => ({
+        url: `/finance/fees/${id}/discount`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: [
+        'FinanceLedger',
+        'FinanceDue',
+        'FinanceDashboard',
+        'Fee',
+      ],
     }),
 
     /* ─────────────── Accounts / Bookkeeping ─────────────── */
@@ -716,89 +1179,204 @@ export const api = createApi({
       query: () => '/accounts/dashboard',
       providesTags: ['AccountsDashboard'],
     }),
+
     getIncomeHeads: builder.query({
-      query: (params = {}) => ({ url: '/accounts/income-heads', params }),
+      query: (params = {}) => ({
+        url: '/accounts/income-heads',
+        params,
+      }),
       providesTags: ['AccountHead'],
     }),
+
     createIncomeHead: builder.mutation({
-      query: (body) => ({ url: '/accounts/income-heads', method: 'POST', body }),
+      query: (body) => ({
+        url: '/accounts/income-heads',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['AccountHead'],
     }),
+
     updateIncomeHead: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/accounts/income-heads/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/accounts/income-heads/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['AccountHead'],
     }),
+
     deleteIncomeHead: builder.mutation({
-      query: (id) => ({ url: `/accounts/income-heads/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/accounts/income-heads/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['AccountHead'],
     }),
+
     getExpenseHeads: builder.query({
-      query: (params = {}) => ({ url: '/accounts/expense-heads', params }),
+      query: (params = {}) => ({
+        url: '/accounts/expense-heads',
+        params,
+      }),
       providesTags: ['AccountHead'],
     }),
+
     createExpenseHead: builder.mutation({
-      query: (body) => ({ url: '/accounts/expense-heads', method: 'POST', body }),
+      query: (body) => ({
+        url: '/accounts/expense-heads',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['AccountHead'],
     }),
+
     updateExpenseHead: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/accounts/expense-heads/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/accounts/expense-heads/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['AccountHead'],
     }),
+
     deleteExpenseHead: builder.mutation({
-      query: (id) => ({ url: `/accounts/expense-heads/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/accounts/expense-heads/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['AccountHead'],
     }),
+
     getIncomeEntries: builder.query({
-      query: (params = {}) => ({ url: '/accounts/income', params }),
+      query: (params = {}) => ({
+        url: '/accounts/income',
+        params,
+      }),
       providesTags: ['AccountEntry'],
     }),
+
     createIncomeEntry: builder.mutation({
-      query: (body) => ({ url: '/accounts/income', method: 'POST', body }),
-      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+      query: (body) => ({
+        url: '/accounts/income',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        'AccountEntry',
+        'AccountsDashboard',
+        'BankAccount',
+      ],
     }),
+
     updateIncomeEntry: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/accounts/income/${id}`, method: 'PUT', body }),
-      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+      query: ({ id, ...body }) => ({
+        url: `/accounts/income/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: [
+        'AccountEntry',
+        'AccountsDashboard',
+        'BankAccount',
+      ],
     }),
+
     deleteIncomeEntry: builder.mutation({
-      query: (id) => ({ url: `/accounts/income/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+      query: (id) => ({
+        url: `/accounts/income/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [
+        'AccountEntry',
+        'AccountsDashboard',
+        'BankAccount',
+      ],
     }),
+
     getExpenseEntries: builder.query({
-      query: (params = {}) => ({ url: '/accounts/expense', params }),
+      query: (params = {}) => ({
+        url: '/accounts/expense',
+        params,
+      }),
       providesTags: ['AccountEntry'],
     }),
+
     createExpenseEntry: builder.mutation({
-      query: (body) => ({ url: '/accounts/expense', method: 'POST', body }),
-      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+      query: (body) => ({
+        url: '/accounts/expense',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        'AccountEntry',
+        'AccountsDashboard',
+        'BankAccount',
+      ],
     }),
+
     updateExpenseEntry: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/accounts/expense/${id}`, method: 'PUT', body }),
-      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+      query: ({ id, ...body }) => ({
+        url: `/accounts/expense/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: [
+        'AccountEntry',
+        'AccountsDashboard',
+        'BankAccount',
+      ],
     }),
+
     deleteExpenseEntry: builder.mutation({
-      query: (id) => ({ url: `/accounts/expense/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['AccountEntry', 'AccountsDashboard', 'BankAccount'],
+      query: (id) => ({
+        url: `/accounts/expense/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [
+        'AccountEntry',
+        'AccountsDashboard',
+        'BankAccount',
+      ],
     }),
+
     getBankAccounts: builder.query({
       query: () => '/accounts/banks',
       transformResponse: (res) => res?.banks || [],
       providesTags: ['BankAccount'],
     }),
+
     createBankAccount: builder.mutation({
-      query: (body) => ({ url: '/accounts/banks', method: 'POST', body }),
+      query: (body) => ({
+        url: '/accounts/banks',
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['BankAccount', 'AccountsDashboard'],
     }),
+
     updateBankAccount: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/accounts/banks/${id}`, method: 'PUT', body }),
+      query: ({ id, ...body }) => ({
+        url: `/accounts/banks/${id}`,
+        method: 'PUT',
+        body,
+      }),
       invalidatesTags: ['BankAccount', 'AccountsDashboard'],
     }),
+
     deleteBankAccount: builder.mutation({
-      query: (id) => ({ url: `/accounts/banks/${id}`, method: 'DELETE' }),
+      query: (id) => ({
+        url: `/accounts/banks/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['BankAccount', 'AccountsDashboard'],
     }),
+
     getBankLedger: builder.query({
-      query: ({ id, ...params }) => ({ url: `/accounts/banks/${id}/ledger`, params }),
+      query: ({ id, ...params }) => ({
+        url: `/accounts/banks/${id}/ledger`,
+        params,
+      }),
       providesTags: ['AccountEntry', 'BankAccount'],
     }),
   }),
@@ -901,11 +1479,11 @@ export const {
   useUpdateFeeGroupMutation,
   useCloneFeeGroupMutation,
   useDeleteFeeGroupMutation,
+  useAssignFeeGroupMutation,
   useGetFeeDiscountsQuery,
   useCreateFeeDiscountMutation,
   useUpdateFeeDiscountMutation,
   useDeleteFeeDiscountMutation,
-  useAssignFeeGroupMutation,
   useGetFeeChallansQuery,
   useCreateFeeChallanMutation,
   useUpdateFeeChallanStatusMutation,
